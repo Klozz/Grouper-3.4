@@ -38,7 +38,6 @@
 #include <linux/spi-tegra.h>
 #include <linux/nfc/pn544.h>
 #include <linux/skbuff.h>
-#include <linux/ti_wilink_st.h>
 #include <linux/regulator/consumer.h>
 #include <linux/smb349-charger.h>
 #include <linux/max17048_battery.h>
@@ -857,6 +856,7 @@ static void __init tegra_grouper_init(void)
 	grouper_keys_init();
 	grouper_panel_init();
 	grouper_bt_st();
+	grouper_nfc_init();
 	grouper_sensors_init();
 	grouper_pins_state_init();
 	grouper_emc_init();
