@@ -538,6 +538,9 @@ static struct tegra_dc_out grouper_disp1_out = {
 	.postpoweron    = grouper_panel_postpoweron,
 	.prepoweroff    = grouper_panel_prepoweroff,
 	.disable	= grouper_panel_disable,
+
+	.height		= 162,
+	.width		= 104,
 };
 
 #ifdef CONFIG_TEGRA_DC
