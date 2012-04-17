@@ -62,7 +62,8 @@
 #include <mach/usb_phy.h>
 #include <mach/gpio-tegra.h>
 #include <mach/tegra_fiq_debugger.h>
- 
+#include <mach/board-grouper-misc.h>
+
 #include "board.h"
 #include "board-common.h"
 #include "clock.h"
@@ -837,6 +838,7 @@ static void __init tegra_grouper_init(void)
 	tegra_smmu_init();
 	tegra_soc_device_init("grouper");
 	grouper_pinmux_init();
+	grouper_misc_init();
 	grouper_i2c_init();
 	grouper_spi_init();
 	grouper_usb_init();
