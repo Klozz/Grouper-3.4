@@ -481,7 +481,9 @@ void tegra_pcm_free(struct snd_pcm *pcm)
 
 static int tegra_pcm_probe(struct snd_soc_platform *platform)
 {
-	platform->dapm.idle_bias_off = 1;
+	if(machine_is_kai() || machine_is_grouper()) {
+		platform->dapm.idle_bias_off = 1;
+	}
 	return 0;
 }
 
