@@ -696,6 +696,22 @@ static struct tegra_usb_platform_data tegra_udc_pdata = {
 	},
 };
 
+static struct tegra_ehci_platform_data tegra_ehci_pdata[] = {
+	[0] = {
+			.phy_config = &utmi_phy_config[0],
+			.operating_mode = TEGRA_USB_OTG,
+			.power_down_on_bus_suspend = 1,
+			.hotplug = 1,
+			.default_enable = true,
+	},
+	[1] = {
+			.phy_config = &utmi_phy_config[1],
+			.operating_mode = TEGRA_USB_HOST,
+			.power_down_on_bus_suspend = 1,
+			.default_enable = false,
+	},
+};
+
 static struct tegra_usb_platform_data tegra_ehci1_utmi_pdata = {
 	.port_otg = true,
 	.has_hostpc = true,
