@@ -849,12 +849,15 @@ static void grouper_audio_init(void)
 
 static void __init tegra_grouper_init(void)
 {
+	grouper_misc_init();
+	tegra_thermal_init(&thermal_data);
 	tegra_clk_init_from_table(grouper_clk_init_table);
 	tegra_enable_pinmux();
 	tegra_smmu_init();
 	tegra_soc_device_init("grouper");
 	grouper_pinmux_init();
-	grouper_misc_init();
+	grouper_misc_reset();
+	tegra_booting_info();
 	grouper_i2c_init();
 	grouper_spi_init();
 	grouper_usb_init();
