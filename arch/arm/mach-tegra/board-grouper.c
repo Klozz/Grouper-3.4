@@ -797,8 +797,8 @@ static void grouper_audio_init(void)
 static void grouper_nfc_init(void)
 {
 	tegra_gpio_enable(TEGRA_GPIO_PX0);
-	tegra_gpio_enable(TEGRA_GPIO_PP3);
-	tegra_gpio_enable(TEGRA_GPIO_PO7);
+	tegra_gpio_enable(TEGRA_GPIO_PS7);
+	tegra_gpio_enable(TEGRA_GPIO_PR3);
 }
 
 static void __init tegra_grouper_init(void)
