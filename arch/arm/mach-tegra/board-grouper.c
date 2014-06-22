@@ -135,7 +135,6 @@ static noinline void __init grouper_bt_st(void)
 
 	platform_device_register(&wl128x_device);
 	platform_device_register(&btwilink_device);
-	tegra_gpio_enable(TEGRA_GPIO_PU0);
 	return;
 }
 
@@ -620,9 +619,6 @@ static int __init grouper_touch_init(void)
 {
 	int touch_id;
 
-	tegra_gpio_enable(GROUPER_TS_ID1);
-	tegra_gpio_enable(GROUPER_TS_ID2);
-
 	gpio_request(GROUPER_TS_ID1, "touch-id1");
 	gpio_direction_input(GROUPER_TS_ID1);
 
@@ -761,10 +757,6 @@ static void grouper_modem_init(void)
 {
 	int ret;
 
-	tegra_gpio_enable(TEGRA_GPIO_W_DISABLE);
-	tegra_gpio_enable(TEGRA_GPIO_MODEM_RSVD1);
-	tegra_gpio_enable(TEGRA_GPIO_MODEM_RSVD2);
-
 	ret = gpio_request(TEGRA_GPIO_W_DISABLE, "w_disable_gpio");
 	if (ret < 0)
 		pr_err("%s: gpio_request failed for gpio %d\n",
@@ -810,13 +802,6 @@ static void grouper_audio_init(void)
 	}
 }
 
-static void grouper_nfc_init(void)
-{
-	tegra_gpio_enable(TEGRA_GPIO_PX0);
-	tegra_gpio_enable(TEGRA_GPIO_PS7);
-	tegra_gpio_enable(TEGRA_GPIO_PR3);
-}
-
 static void __init tegra_grouper_init(void)
 {
 	tegra_thermal_init(&thermal_data);
@@ -840,7 +825,6 @@ static void __init tegra_grouper_init(void)
 	grouper_keys_init();
 	grouper_panel_init();
 	grouper_bt_st();
-	grouper_nfc_init();
 	grouper_sensors_init();
 	grouper_pins_state_init();
 	grouper_emc_init();

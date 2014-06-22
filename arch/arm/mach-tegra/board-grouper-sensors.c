@@ -135,8 +135,6 @@ static int grouper_nct1008_init(void)
 		pr_err("%s: set gpio to input failed\n", __func__);
 		gpio_free(GROUPER_TEMP_ALERT_GPIO);
 	}
-	else
-		tegra_gpio_enable(GROUPER_TEMP_ALERT_GPIO);
 
 	return ret;
 }
@@ -158,7 +156,6 @@ static int grouper_camera_init(void)
 {
 	int ret;
 
-	tegra_gpio_enable(CAM2_POWER_DWN_GPIO);
 	ret = gpio_request(CAM2_POWER_DWN_GPIO, "cam2_power_en");
 	if (ret < 0) {
 		pr_err("%s: gpio_request failed for gpio %s\n",
@@ -168,7 +165,6 @@ static int grouper_camera_init(void)
 	gpio_direction_output(CAM2_POWER_DWN_GPIO, 1);
 	mdelay(10);
 
-	tegra_gpio_enable(CAM2_RST_GPIO);
 	ret = gpio_request(CAM2_RST_GPIO, "cam2_reset");
 	if (ret < 0) {
 		pr_err("%s: gpio_request failed for gpio %s\n",
@@ -314,7 +310,6 @@ static void mpuirq_init(void)
 #if (MPU_GYRO_TYPE == MPU_TYPE_MPU3050)
 #if MPU_ACCEL_IRQ_GPIO
 	/* ACCEL-IRQ assignment */
-	tegra_gpio_enable(MPU_ACCEL_IRQ_GPIO);
 	ret = gpio_request(MPU_ACCEL_IRQ_GPIO, MPU_ACCEL_NAME);
 	if (ret < 0) {
 		pr_err("%s: gpio_request failed %d\n", __func__, ret);
@@ -331,7 +326,6 @@ static void mpuirq_init(void)
 #endif
 
 	/* MPU-IRQ assignment */
-	tegra_gpio_enable(MPU_GYRO_IRQ_GPIO);
 	ret = gpio_request(MPU_GYRO_IRQ_GPIO, MPU_GYRO_NAME);
 	if (ret < 0) {
 		pr_err("%s: gpio_request failed %d\n", __func__, ret);
