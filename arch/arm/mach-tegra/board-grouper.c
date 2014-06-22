@@ -805,6 +805,7 @@ static void __init tegra_grouper_init(void)
 {
 	tegra_thermal_init(&thermal_data);
 	tegra_clk_init_from_table(grouper_clk_init_table);
+	tegra_enable_pinmux();
 	grouper_pinmux_init();
 	grouper_i2c_init();
 	grouper_spi_init();
