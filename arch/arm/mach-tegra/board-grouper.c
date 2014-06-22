@@ -61,6 +61,7 @@
 #include "board.h"
 #include "clock.h"
 #include "board-grouper.h"
+#include "board-touch.h"
 #include "devices.h"
 #include "gpio-names.h"
 #include "fuse.h"
