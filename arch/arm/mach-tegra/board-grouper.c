@@ -67,6 +67,7 @@
 #include "fuse.h"
 #include "pm.h"
 #include "wdt-recovery.h"
+#include "common.h"
 
 /* All units are in millicelsius */
 static struct tegra_thermal_data thermal_data = {
@@ -854,6 +855,7 @@ static void __init tegra_grouper_reserve(void)
 
 MACHINE_START(GROUPER, "grouper")
 	.atag_offset	= 0x100
+	.soc            = &tegra_soc_desc,
 	.map_io		= tegra_map_common_io,
 	.reserve	= tegra_grouper_reserve,
 	.init_early	= tegra30_init_early,
