@@ -736,12 +736,13 @@ static struct tegra_usb_platform_data tegra_ehci2_utmi_pdata = {
 		.xcvr_setup_offset = 0,
 		.xcvr_use_fuses = 1,
 	},
-	},
 };
 
 static struct tegra_usb_otg_data tegra_otg_pdata = {
 	.ehci_device = &tegra_ehci1_device,
 	.ehci_pdata = &tegra_ehci1_utmi_pdata,
+};
+
 #if CONFIG_USB_SUPPORT
 static void grouper_usb_init(void)
 {
