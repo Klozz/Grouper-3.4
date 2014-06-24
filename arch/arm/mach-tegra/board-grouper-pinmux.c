@@ -16,7 +16,11 @@
 
 #include <linux/kernel.h>
 #include <linux/init.h>
+#include <linux/gpio.h>
 #include <mach/pinmux.h>
+#include <mach/pinmux-tegra30.h>
+#include <mach/gpio-tegra.h>
+#include "devices.h"
 #include "board.h"
 #include "board-grouper.h"
 #include "gpio-names.h"
@@ -379,7 +383,7 @@ static __initdata struct tegra_pingroup_config grouper_pinmux_common[] = {
 	DEFAULT_PINMUX(SPI2_MISO,       SPI2,            NORMAL,    NORMAL,     INPUT),
 	DEFAULT_PINMUX(SPI2_MOSI,       SPI2,            NORMAL,    NORMAL,     INPUT),
 
-	DEFAULT_PINMUX(KB_ROW11,        KBC,             NORMAL,    NORMAL,     OUTPUT),
+	DEFAULT_PINMUX(KB_ROW11,        KBC,             PULL_UP,    TRISTATE,     INPUT),
 	DEFAULT_PINMUX(KB_ROW12,        KBC,             NORMAL,    TRISTATE,   OUTPUT),
 	DEFAULT_PINMUX(KB_ROW13,        KBC,             NORMAL,    TRISTATE,   OUTPUT),
 };
@@ -452,9 +456,18 @@ static __initdata struct tegra_pingroup_config unused_pins_lowpower[] = {
 
 static void __init grouper_pinmux_audio_init(void)
 {
-	gpio_request(TEGRA_GPIO_CDC_IRQ, "rt5640");
-	gpio_direction_input(TEGRA_GPIO_CDC_IRQ);
-}
+	int err = gpio_request(TEGRA_GPIO_CDC_IRQ, "rt5640");
+       if (err < 0) {
+               pr_err("%s: gpio_request failed %d\n",
+                       __func__, err);
+               return;
+       }
+       err = gpio_direction_input(TEGRA_GPIO_CDC_IRQ);
+       if (err < 0) {
+               pr_err("%s: gpio_direction_output failed %d\n",
+                       __func__, err);
+                       gpio_free(TEGRA_GPIO_CDC_IRQ);
+       }
 
 /* We are disabling this code for now. */
 #define GPIO_INIT_PIN_MODE(_gpio, _is_input, _value)	\
@@ -467,6 +480,7 @@ static void __init grouper_pinmux_audio_init(void)
 static struct gpio_init_pin_info init_gpio_mode_grouper_common[] = {
 	GPIO_INIT_PIN_MODE(TEGRA_GPIO_PDD7, false, 0),
 	GPIO_INIT_PIN_MODE(TEGRA_GPIO_PCC6, false, 0),
+	GPIO_INIT_PIN_MODE(TEGRA_GPIO_PCC7, false, 1),
 };
 
 static void __init grouper_gpio_init_configure(void)
@@ -484,12 +498,21 @@ static void __init grouper_gpio_init_configure(void)
 		pins_info++;
 	}
 }
+ 
+static struct platform_device *pinmux_devices[] = {
+	&tegra_gpio_device,
+	&tegra_pinmux_device,
+};
 
 int __init grouper_pinmux_init(void)
 {
 	struct board_info board_info;
 	tegra_get_board_info(&board_info);
 	BUG_ON(board_info.board_id != BOARD_E1565);
+
+	platform_add_devices(pinmux_devices, ARRAY_SIZE(pinmux_devices));
+
+	tegra30_default_pinmux();
 	grouper_gpio_init_configure();
 
 	tegra_pinmux_config_table(grouper_pinmux_common, ARRAY_SIZE(grouper_pinmux_common));

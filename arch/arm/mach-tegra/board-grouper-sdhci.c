@@ -100,7 +100,7 @@ static struct resource sdhci_resource3[] = {
 	},
 };
 
-static struct embedded_sdio_data embedded_sdio_data2 = {
+/*static struct embedded_sdio_data embedded_sdio_data2 = {
 	.cccr   = {
 		.sdio_vsn       = 2,
 		.multi_block    = 1,
@@ -113,7 +113,7 @@ static struct embedded_sdio_data embedded_sdio_data2 = {
 		.vendor         = 0x0097,
 		.device         = 0x4076,
 	},
-};
+};*/
 
 static struct tegra_sdhci_platform_data tegra_sdhci_platform_data2 = {
 	.mmc_data = {
