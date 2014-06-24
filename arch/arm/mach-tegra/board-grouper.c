@@ -65,6 +65,7 @@
 #include <mach/tegra_fiq_debugger.h>
  
 #include "board.h"
+#include "board-common.h"
 #include "clock.h"
 #include "board-grouper.h"
 #include "board-touch-raydium.h"
@@ -380,65 +381,10 @@ static void __init uart_debug_init(void)
 {
 	int debug_port_id;
 
-	debug_port_id = get_tegra_uart_debug_port_id();
+	debug_port_id = uart_console_debug_init(3);
 	if (debug_port_id < 0)
-		debug_port_id = 3;
-
-	switch (debug_port_id) {
-	case 0:
-		/* UARTA is the debug port. */
-		pr_info("Selecting UARTA as the debug console\n");
-		grouper_uart_devices[0] = &debug_uarta_device;
-		debug_uart_clk = clk_get_sys("serial8250.0", "uarta");
-		debug_uart_port_base = ((struct plat_serial8250_port *)(
-			debug_uarta_device.dev.platform_data))->mapbase;
-		break;
-
-	case 1:
-		/* UARTB is the debug port. */
-		pr_info("Selecting UARTB as the debug console\n");
-		grouper_uart_devices[1] = &debug_uartb_device;
-		debug_uart_clk = clk_get_sys("serial8250.0", "uartb");
-		debug_uart_port_base = ((struct plat_serial8250_port *)(
-			debug_uartb_device.dev.platform_data))->mapbase;
-		break;
-
-	case 2:
-		/* UARTC is the debug port. */
-		pr_info("Selecting UARTC as the debug console\n");
-		grouper_uart_devices[2] = &debug_uartc_device;
-		debug_uart_clk = clk_get_sys("serial8250.0", "uartc");
-		debug_uart_port_base = ((struct plat_serial8250_port *)(
-			debug_uartc_device.dev.platform_data))->mapbase;
-		break;
-
-	case 3:
-		/* UARTD is the debug port. */
-		pr_info("Selecting UARTD as the debug console\n");
-		grouper_uart_devices[3] = &debug_uartd_device;
-		debug_uart_clk = clk_get_sys("serial8250.0", "uartd");
-		debug_uart_port_base = ((struct plat_serial8250_port *)(
-			debug_uartd_device.dev.platform_data))->mapbase;
-		break;
-
-	case 4:
-		/* UARTE is the debug port. */
-		pr_info("Selecting UARTE as the debug console\n");
-		grouper_uart_devices[4] = &debug_uarte_device;
-		debug_uart_clk = clk_get_sys("serial8250.0", "uarte");
-		debug_uart_port_base = ((struct plat_serial8250_port *)(
-			debug_uarte_device.dev.platform_data))->mapbase;
-		break;
-
-	default:
-		pr_info("The debug console id %d is invalid, Assuming UARTA",
-			debug_port_id);
-		grouper_uart_devices[0] = &debug_uarta_device;
-		debug_uart_clk = clk_get_sys("serial8250.0", "uarta");
-		debug_uart_port_base = ((struct plat_serial8250_port *)(
-			debug_uarta_device.dev.platform_data))->mapbase;
-		break;
-	}
+		return;
+	grouper_uart_devices[debug_port_id] = uart_console_debug_device;
 	return;
 }
 
@@ -473,24 +419,7 @@ static void __init grouper_uart_init(void)
 	/* Register low speed only if it is selected */
 	if (!is_tegra_debug_uartport_hs()) {
 		uart_debug_init();
-		/* Clock enable for the debug channel */
-		if (!IS_ERR_OR_NULL(debug_uart_clk)) {
-			pr_info("The debug console clock name is %s\n",
-						debug_uart_clk->name);
-			c = tegra_get_clock_by_name("pll_p");
-			if (IS_ERR_OR_NULL(c))
-				pr_err("Not getting the parent clock pll_p\n");
-			else
-				clk_set_parent(debug_uart_clk, c);
-
-			clk_enable(debug_uart_clk);
-			clk_set_rate(debug_uart_clk, clk_get_rate(c));
-		} else {
-			pr_err("Not getting the clock %s for debug console\n",
-					debug_uart_clk->name);
-		}
 	}
-
 	platform_add_devices(grouper_uart_devices,
 				ARRAY_SIZE(grouper_uart_devices));
 }
