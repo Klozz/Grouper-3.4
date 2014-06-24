@@ -625,30 +625,116 @@ int __init grouper_panel_init(void)
 	grouper_carveouts[1].base = tegra_carveout_start;
 	grouper_carveouts[1].size = tegra_carveout_size;
 #endif
-	gpio_request(grouper_lvds_avdd_en, "lvds_avdd_en");
-	gpio_direction_output(grouper_lvds_avdd_en, 1);
-
-	gpio_request(grouper_lvds_stdby, "lvds_stdby");
-	gpio_direction_output(grouper_lvds_stdby, 1);
-
-	gpio_request(grouper_lvds_rst, "lvds_rst");
-	gpio_direction_output(grouper_lvds_rst, 1);
-
-	if (board_info.fab == BOARD_FAB_A00) {
-		gpio_request(grouper_lvds_rs_a00, "lvds_rs");
-		gpio_direction_output(grouper_lvds_rs_a00, 0);
-	} else {
-		gpio_request(grouper_lvds_rs, "lvds_rs");
-		gpio_direction_output(grouper_lvds_rs, 0);
+	err = gpio_request(grouper_lvds_avdd_en, "lvds_avdd_en");
+	if (err < 0) {
+		pr_err("%s: gpio_request failed %d\n",
+			__func__, err);
+		return err;
+	}
+	err = gpio_direction_output(grouper_lvds_avdd_en, 1);
+	if (err < 0) {
+		pr_err("%s: gpio_direction_output failed %d\n",
+			__func__, err);
+			gpio_free(grouper_lvds_avdd_en);
+		return err;
+	}
+	err = gpio_request(grouper_lvds_stdby, "lvds_stdby");
+	if (err < 0) {
+		pr_err("%s: gpio_request failed %d\n",
+			__func__, err);
+		return err;
+	}
+	err = gpio_direction_output(grouper_lvds_stdby, 1);
+	if (err < 0) {
+		pr_err("%s: gpio_direction_output failed %d\n",
+			__func__, err);
+			gpio_free(grouper_lvds_stdby);
+		return err;
+	}
+	err = gpio_request(grouper_lvds_rst, "lvds_rst");
+	if (err < 0) {
+		pr_err("%s: gpio_request failed %d\n",
+			__func__, err);
+		return err;
+	}
+	err = gpio_direction_output(grouper_lvds_rst, 1);
+	if (err < 0) {
+		pr_err("%s: gpio_direction_output failed %d\n",
+			__func__, err);
+			gpio_free(grouper_lvds_rst);
+		return err;
 	}
 
-	gpio_request(grouper_lvds_lr, "lvds_lr");
-	gpio_direction_output(grouper_lvds_lr, 1);
-	gpio_request(grouper_lvds_shutdown, "lvds_shutdown");
-	gpio_direction_output(grouper_lvds_shutdown, 1);
+	if (board_info.fab == BOARD_FAB_A00) {
+		err = gpio_request(grouper_lvds_rs_a00, "lvds_rs");
+		if (err < 0) {
+			pr_err("%s: gpio_request failed %d\n",
+				__func__, err);
+			return err;
+		}
+		err = gpio_direction_output(grouper_lvds_rs_a00, 0);
+		if (err < 0) {
+			pr_err("%s: gpio_direction_output failed %d\n",
+				__func__, err);
+			gpio_free(grouper_lvds_rs_a00);
+			return err;
+		}
+	} else {
+		err = gpio_request(grouper_lvds_rs, "lvds_rs");
+		if (err < 0) {
+			pr_err("%s: gpio_request failed %d\n",
+				__func__, err);
+			return err;
+		}
+		err = gpio_direction_output(grouper_lvds_rs, 0);
+		if (err < 0) {
+			pr_err("%s: gpio_direction_output failed %d\n",
+				__func__, err);
+			gpio_free(grouper_lvds_rs);
+			return err;
+		}
+	}
 
-	gpio_request(grouper_hdmi_hpd, "hdmi_hpd");
-	gpio_direction_input(grouper_hdmi_hpd);
+	err = gpio_request(grouper_lvds_lr, "lvds_lr");
+	if (err < 0) {
+		pr_err("%s: gpio_request failed %d\n",
+			__func__, err);
+		return err;
+	}
+	err = gpio_direction_output(grouper_lvds_lr, 1);
+	if (err < 0) {
+		pr_err("%s: gpio_direction_output failed %d\n",
+			__func__, err);
+		gpio_free(grouper_lvds_lr);
+		return err;
+	}
+	err = gpio_request(grouper_lvds_shutdown, "lvds_shutdown");
+	if (err < 0) {
+		pr_err("%s: gpio_request failed %d\n",
+			__func__, err);
+		return err;
+	}
+	err = gpio_direction_output(grouper_lvds_shutdown, 1);
+	if (err < 0) {
+		pr_err("%s: gpio_direction_output failed %d\n",
+			__func__, err);
+		gpio_free(grouper_lvds_shutdown);
+		return err;
+	}
+
+	err = gpio_request(grouper_hdmi_hpd, "hdmi_hpd");
+	if (err < 0) {
+		pr_err("%s: gpio_request failed %d\n",
+			__func__, err);
+		return err;
+	}
+	err = gpio_direction_input(grouper_hdmi_hpd);
+	if (err < 0) {
+		pr_err("%s: gpio_direction_input failed %d\n",
+			__func__, err);
+		gpio_free(grouper_hdmi_hpd);
+		return err;
+	}
 
 #ifdef CONFIG_TEGRA_GRHOST
 	err = tegra3_register_host1x_devices();
