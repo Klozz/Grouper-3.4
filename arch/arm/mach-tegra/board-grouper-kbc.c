@@ -102,7 +102,6 @@ static struct platform_device grouper_int_keys_device = {
 
 int __init grouper_keys_init(void)
 {
-	int i;
 
 	pr_info("Registering gpio keys\n");
 
