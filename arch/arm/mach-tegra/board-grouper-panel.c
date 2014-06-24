@@ -37,6 +37,7 @@
 #include "board-grouper.h"
 #include "devices.h"
 #include "gpio-names.h"
+#include "tegra3_host1x_devices.h"
 
 /* grouper default display board pins */
 #define grouper_lvds_avdd_en		TEGRA_GPIO_PH6
@@ -171,7 +172,7 @@ static struct platform_device grouper_backlight_device = {
 	},
 };
 
-static int grouper_panel_enable(void)
+static int grouper_panel_postpoweron(void)
 {
 	if (grouper_lvds_reg == NULL) {
 		grouper_lvds_reg = regulator_get(NULL, "vdd_lvds");
@@ -180,15 +181,6 @@ static int grouper_panel_enable(void)
 			       __func__, PTR_ERR(grouper_lvds_reg));
 		else
 			regulator_enable(grouper_lvds_reg);
-	}
-
-	if (grouper_lvds_vdd_panel == NULL) {
-		grouper_lvds_vdd_panel = regulator_get(NULL, "vdd_lcd_panel");
-		if (WARN_ON(IS_ERR(grouper_lvds_vdd_panel)))
-			pr_err("%s: couldn't get regulator vdd_lcd_panel: %ld\n",
-			       __func__, PTR_ERR(grouper_lvds_vdd_panel));
-		else
-			regulator_enable(grouper_lvds_vdd_panel);
 	}
 
 	mdelay(5);
@@ -206,7 +198,30 @@ static int grouper_panel_enable(void)
 	return 0;
 }
 
+static int grouper_panel_enable(struct device *dev)
+{
+	if (grouper_lvds_vdd_panel == NULL) {
+		grouper_lvds_vdd_panel = regulator_get(dev, "vdd_lcd_panel");
+		if (WARN_ON(IS_ERR(grouper_lvds_vdd_panel)))
+			pr_err("%s: couldn't get regulator vdd_lcd_panel: %ld\n",
+			       __func__, PTR_ERR(grouper_lvds_vdd_panel));
+		else
+			regulator_enable(grouper_lvds_vdd_panel);
+	}
+
+	return 0;
+}
+
 static int grouper_panel_disable(void)
+{
+	regulator_disable(grouper_lvds_vdd_panel);
+	regulator_put(grouper_lvds_vdd_panel);
+	grouper_lvds_vdd_panel = NULL;
+
+	return 0;
+}
+
+static int grouper_panel_prepoweroff(void)
 {
 	gpio_set_value(grouper_lvds_lr, 0);
 	gpio_set_value(grouper_lvds_shutdown, 0);
@@ -221,19 +236,15 @@ static int grouper_panel_disable(void)
 	regulator_put(grouper_lvds_reg);
 	grouper_lvds_reg = NULL;
 
-	regulator_disable(grouper_lvds_vdd_panel);
-	regulator_put(grouper_lvds_vdd_panel);
-	grouper_lvds_vdd_panel = NULL;
-
 	return 0;
 }
 
 #ifdef CONFIG_TEGRA_DC
-static int grouper_hdmi_vddio_enable(void)
+static int grouper_hdmi_vddio_enable(struct device *dev)
 {
 	int ret;
 	if (!grouper_hdmi_vddio) {
-		grouper_hdmi_vddio = regulator_get(NULL, "vdd_hdmi_con");
+		grouper_hdmi_vddio = regulator_get(dev, "vdd_hdmi_con");
 		if (IS_ERR_OR_NULL(grouper_hdmi_vddio)) {
 			ret = PTR_ERR(grouper_hdmi_vddio);
 			pr_err("hdmi: couldn't get regulator vdd_hdmi_con\n");
@@ -261,11 +272,11 @@ static int grouper_hdmi_vddio_disable(void)
 	return 0;
 }
 
-static int grouper_hdmi_enable(void)
+static int grouper_hdmi_enable(struct device *dev)
 {
 	int ret;
 	if (!grouper_hdmi_reg) {
-		grouper_hdmi_reg = regulator_get(NULL, "avdd_hdmi");
+		grouper_hdmi_reg = regulator_get(dev, "avdd_hdmi");
 		if (IS_ERR_OR_NULL(grouper_hdmi_reg)) {
 			pr_err("hdmi: couldn't get regulator avdd_hdmi\n");
 			grouper_hdmi_reg = NULL;
@@ -278,7 +289,7 @@ static int grouper_hdmi_enable(void)
 		return ret;
 	}
 	if (!grouper_hdmi_pll) {
-		grouper_hdmi_pll = regulator_get(NULL, "avdd_hdmi_pll");
+		grouper_hdmi_pll = regulator_get(dev, "avdd_hdmi_pll");
 		if (IS_ERR_OR_NULL(grouper_hdmi_pll)) {
 			pr_err("hdmi: couldn't get regulator avdd_hdmi_pll\n");
 			grouper_hdmi_pll = NULL;
@@ -462,7 +473,7 @@ static struct tegra_dc_sd_settings grouper_sd_settings = {
 			},
 		},
 	.sd_brightness = &sd_brightness,
-	.bl_device = &grouper_backlight_device,
+	.bl_device_name = "pwm-backlight",
 };
 
 #ifdef CONFIG_TEGRA_DC
@@ -524,6 +535,8 @@ static struct tegra_dc_out grouper_disp1_out = {
 	.n_modes	= ARRAY_SIZE(grouper_panel_modes),
 
 	.enable		= grouper_panel_enable,
+	.postpoweron    = grouper_panel_postpoweron,
+	.prepoweroff    = grouper_panel_prepoweroff,
 	.disable	= grouper_panel_disable,
 };
 
@@ -535,7 +548,7 @@ static struct tegra_dc_platform_data grouper_disp1_pdata = {
 	.fb		= &grouper_fb_data,
 };
 
-static struct nvhost_device grouper_disp1_device = {
+static struct platform_device grouper_disp1_device = {
 	.name		= "tegradc",
 	.id		= 0,
 	.resource	= grouper_disp1_resources,
@@ -550,7 +563,7 @@ static int grouper_disp1_check_fb(struct device *dev, struct fb_info *info)
 	return info->device == &grouper_disp1_device.dev;
 }
 
-static struct nvhost_device grouper_disp2_device = {
+static struct platform_device grouper_disp2_device = {
 	.name		= "tegradc",
 	.id		= 1,
 	.resource	= grouper_disp2_resources,
@@ -605,6 +618,7 @@ int __init grouper_panel_init(void)
 	int err;
 	struct resource __maybe_unused *res;
 	struct board_info board_info;
+	struct platform_device *phost1x;
 
 	tegra_get_board_info(&board_info);
 
@@ -612,66 +626,159 @@ int __init grouper_panel_init(void)
 	grouper_carveouts[1].base = tegra_carveout_start;
 	grouper_carveouts[1].size = tegra_carveout_size;
 #endif
-	gpio_request(grouper_lvds_avdd_en, "lvds_avdd_en");
-	gpio_direction_output(grouper_lvds_avdd_en, 1);
-
-	gpio_request(grouper_lvds_stdby, "lvds_stdby");
-	gpio_direction_output(grouper_lvds_stdby, 1);
-
-	gpio_request(grouper_lvds_rst, "lvds_rst");
-	gpio_direction_output(grouper_lvds_rst, 1);
-
-	if (board_info.fab == BOARD_FAB_A00) {
-		gpio_request(grouper_lvds_rs_a00, "lvds_rs");
-		gpio_direction_output(grouper_lvds_rs_a00, 0);
-	} else {
-		gpio_request(grouper_lvds_rs, "lvds_rs");
-		gpio_direction_output(grouper_lvds_rs, 0);
+	err = gpio_request(grouper_lvds_avdd_en, "lvds_avdd_en");
+	if (err < 0) {
+		pr_err("%s: gpio_request failed %d\n",
+			__func__, err);
+		return err;
+	}
+	err = gpio_direction_output(grouper_lvds_avdd_en, 1);
+	if (err < 0) {
+		pr_err("%s: gpio_direction_output failed %d\n",
+			__func__, err);
+			gpio_free(grouper_lvds_avdd_en);
+		return err;
+	}
+	err = gpio_request(grouper_lvds_stdby, "lvds_stdby");
+	if (err < 0) {
+		pr_err("%s: gpio_request failed %d\n",
+			__func__, err);
+		return err;
+	}
+	err = gpio_direction_output(grouper_lvds_stdby, 1);
+	if (err < 0) {
+		pr_err("%s: gpio_direction_output failed %d\n",
+			__func__, err);
+			gpio_free(grouper_lvds_stdby);
+		return err;
+	}
+	err = gpio_request(grouper_lvds_rst, "lvds_rst");
+	if (err < 0) {
+		pr_err("%s: gpio_request failed %d\n",
+			__func__, err);
+		return err;
+	}
+	err = gpio_direction_output(grouper_lvds_rst, 1);
+	if (err < 0) {
+		pr_err("%s: gpio_direction_output failed %d\n",
+			__func__, err);
+			gpio_free(grouper_lvds_rst);
+		return err;
 	}
 
-	gpio_request(grouper_lvds_lr, "lvds_lr");
-	gpio_direction_output(grouper_lvds_lr, 1);
-	gpio_request(grouper_lvds_shutdown, "lvds_shutdown");
-	gpio_direction_output(grouper_lvds_shutdown, 1);
+	if (board_info.fab == BOARD_FAB_A00) {
+		err = gpio_request(grouper_lvds_rs_a00, "lvds_rs");
+		if (err < 0) {
+			pr_err("%s: gpio_request failed %d\n",
+				__func__, err);
+			return err;
+		}
+		err = gpio_direction_output(grouper_lvds_rs_a00, 0);
+		if (err < 0) {
+			pr_err("%s: gpio_direction_output failed %d\n",
+				__func__, err);
+			gpio_free(grouper_lvds_rs_a00);
+			return err;
+		}
+	} else {
+		err = gpio_request(grouper_lvds_rs, "lvds_rs");
+		if (err < 0) {
+			pr_err("%s: gpio_request failed %d\n",
+				__func__, err);
+			return err;
+		}
+		err = gpio_direction_output(grouper_lvds_rs, 0);
+		if (err < 0) {
+			pr_err("%s: gpio_direction_output failed %d\n",
+				__func__, err);
+			gpio_free(grouper_lvds_rs);
+			return err;
+		}
+	}
 
-	gpio_request(grouper_hdmi_hpd, "hdmi_hpd");
-	gpio_direction_input(grouper_hdmi_hpd);
-
-#ifdef CONFIG_TEGRA_GRHOST
-	err = tegra3_register_host1x_devices();
-	if (err)
+	err = gpio_request(grouper_lvds_lr, "lvds_lr");
+	if (err < 0) {
+		pr_err("%s: gpio_request failed %d\n",
+			__func__, err);
 		return err;
-#endif
+	}
+	err = gpio_direction_output(grouper_lvds_lr, 1);
+	if (err < 0) {
+		pr_err("%s: gpio_direction_output failed %d\n",
+			__func__, err);
+		gpio_free(grouper_lvds_lr);
+		return err;
+	}
+	err = gpio_request(grouper_lvds_shutdown, "lvds_shutdown");
+	if (err < 0) {
+		pr_err("%s: gpio_request failed %d\n",
+			__func__, err);
+		return err;
+	}
+	err = gpio_direction_output(grouper_lvds_shutdown, 1);
+	if (err < 0) {
+		pr_err("%s: gpio_direction_output failed %d\n",
+			__func__, err);
+		gpio_free(grouper_lvds_shutdown);
+		return err;
+	}
+
+	err = gpio_request(grouper_hdmi_hpd, "hdmi_hpd");
+	if (err < 0) {
+		pr_err("%s: gpio_request failed %d\n",
+			__func__, err);
+		return err;
+	}
+	err = gpio_direction_input(grouper_hdmi_hpd);
+	if (err < 0) {
+		pr_err("%s: gpio_direction_input failed %d\n",
+			__func__, err);
+		gpio_free(grouper_hdmi_hpd);
+		return err;
+	}
 
 	err = platform_add_devices(grouper_gfx_devices,
 				ARRAY_SIZE(grouper_gfx_devices));
 
+#ifdef CONFIG_TEGRA_GRHOST
+	phost1x = tegra3_register_host1x_devices();
+	if (!phost1x)
+		return -EINVAL;
+#endif
+
 #if defined(CONFIG_TEGRA_GRHOST) && defined(CONFIG_TEGRA_DC)
-	res = nvhost_get_resource_byname(&grouper_disp1_device,
+	res = platform_get_resource_byname(&grouper_disp1_device,
 					 IORESOURCE_MEM, "fbmem");
 	res->start = tegra_fb_start;
 	res->end = tegra_fb_start + tegra_fb_size - 1;
 #endif
 
 	/* Copy the bootloader fb to the fb. */
-	tegra_move_framebuffer(tegra_fb_start, tegra_bootloader_fb_start,
+	__tegra_move_framebuffer(&grouper_nvmap_device,
+		tegra_fb_start, tegra_bootloader_fb_start,
 				min(tegra_fb_size, tegra_bootloader_fb_size));
 
 #if defined(CONFIG_TEGRA_GRHOST) && defined(CONFIG_TEGRA_DC)
-	if (!err)
-		err = nvhost_device_register(&grouper_disp1_device);
+	if (!err) {
+		grouper_disp1_device.dev.parent = &phost1x->dev;
+		err = platform_device_register(&grouper_disp1_device);
+	}
 
-	res = nvhost_get_resource_byname(&grouper_disp2_device,
+	res = platform_get_resource_byname(&grouper_disp2_device,
 					 IORESOURCE_MEM, "fbmem");
 	res->start = tegra_fb2_start;
 	res->end = tegra_fb2_start + tegra_fb2_size - 1;
-	if (!err)
-		err = nvhost_device_register(&grouper_disp2_device);
+	if (!err) {
+		grouper_disp2_device.dev.parent = &phost1x->dev;
+		err = platform_device_register(&grouper_disp2_device);
+	}
 #endif
 
 #if defined(CONFIG_TEGRA_GRHOST) && defined(CONFIG_TEGRA_NVAVP)
-	if (!err)
-		err = nvhost_device_register(&nvavp_device);
+	if (!err) {
+		nvavp_device.dev.parent = &phost1x->dev;
+		err = platform_device_register(&nvavp_device);
+	}
 #endif
 	return err;
 }

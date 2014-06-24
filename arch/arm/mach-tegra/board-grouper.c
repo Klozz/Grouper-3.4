@@ -595,11 +595,31 @@ static int __init grouper_touch_init(void)
 {
 	int touch_id;
 
-	gpio_request(GROUPER_TS_ID1, "touch-id1");
-	gpio_direction_input(GROUPER_TS_ID1);
+	touch_id = gpio_request(GROUPER_TS_ID1, "touch-id1");
+	if (touch_id < 0) {
+		pr_err("%s: gpio_request failed %d\n",
+			__func__, touch_id);
+		return touch_id;
+	}
+	touch_id = gpio_direction_input(GROUPER_TS_ID1);
+	if (touch_id < 0) {
+		pr_err("%s: gpio_direction_input failed %d\n",
+			__func__, touch_id);
+		gpio_free(GROUPER_TS_ID1);
+	}
 
-	gpio_request(GROUPER_TS_ID2, "touch-id2");
-	gpio_direction_input(GROUPER_TS_ID2);
+	touch_id = gpio_request(GROUPER_TS_ID2, "touch-id2");
+	if (touch_id < 0) {
+		pr_err("%s: gpio_request failed %d\n",
+			__func__, touch_id);
+		return touch_id;
+	}
+	touch_id = gpio_direction_input(GROUPER_TS_ID2);
+	if (touch_id < 0) {
+		pr_err("%s: gpio_direction_input failed %d\n",
+			__func__, touch_id);
+		gpio_free(GROUPER_TS_ID2);
+	}
 
 	touch_id = gpio_get_value(GROUPER_TS_ID1) << 1;
 	touch_id |= gpio_get_value(GROUPER_TS_ID2);
@@ -753,24 +773,41 @@ static void grouper_modem_init(void)
 	if (ret < 0)
 		pr_err("%s: gpio_request failed for gpio %d\n",
 			__func__, TEGRA_GPIO_W_DISABLE);
-	else
-		gpio_direction_output(TEGRA_GPIO_W_DISABLE, 1);
+	else {
+		ret = gpio_direction_output(TEGRA_GPIO_W_DISABLE, 1);
+		if (ret < 0) {
+			pr_err("%s: gpio_direction_output failed %d\n",
+				__func__, ret);
+			gpio_free(TEGRA_GPIO_W_DISABLE);
+		}
+	}
 
 
 	ret = gpio_request(TEGRA_GPIO_MODEM_RSVD1, "Port_V_PIN_0");
 	if (ret < 0)
 		pr_err("%s: gpio_request failed for gpio %d\n",
 			__func__, TEGRA_GPIO_MODEM_RSVD1);
-	else
-		gpio_direction_input(TEGRA_GPIO_MODEM_RSVD1);
-
+	else {
+		ret = gpio_direction_input(TEGRA_GPIO_MODEM_RSVD1);
+		if (ret < 0) {
+			pr_err("%s: gpio_direction_output failed %d\n",
+				__func__, ret);
+			gpio_free(TEGRA_GPIO_MODEM_RSVD1);
+		}
+	}
 
 	ret = gpio_request(TEGRA_GPIO_MODEM_RSVD2, "Port_H_PIN_7");
 	if (ret < 0)
 		pr_err("%s: gpio_request failed for gpio %d\n",
 			__func__, TEGRA_GPIO_MODEM_RSVD2);
-	else
-		gpio_direction_output(TEGRA_GPIO_MODEM_RSVD2, 1);
+	else {
+		ret = gpio_direction_output(TEGRA_GPIO_MODEM_RSVD2, 1);
+		if (ret < 0) {
+			pr_err("%s: gpio_direction_output failed %d\n",
+				__func__, ret);
+			gpio_free(TEGRA_GPIO_MODEM_RSVD2);
+		}
+	}
 
 }
 
