@@ -863,7 +863,7 @@ static const char * const grouper_dt_board_compat[] = {
 };
 
 MACHINE_START(GROUPER, "grouper")
-	.atag_offset	= 0x100
+	.atag_offset	= 0x100,
 	.soc            = &tegra_soc_desc,
 	.map_io		= tegra_map_common_io,
 	.reserve	= tegra_grouper_reserve,
