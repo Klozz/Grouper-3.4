@@ -57,7 +57,6 @@ static struct regulator_consumer_supply max77663_sd1_supply[] = {
 static struct regulator_consumer_supply max77663_sd2_supply[] = {
 	REGULATOR_SUPPLY("vdd_gen1v8", NULL),
 	REGULATOR_SUPPLY("avdd_hdmi_pll", NULL),
-	REGULATOR_SUPPLY("avdd_usb_pll", NULL),
 	REGULATOR_SUPPLY("avdd_usb_pll", "tegra-udc.0"),
 	REGULATOR_SUPPLY("avdd_usb_pll", "tegra-ehci.0"),
 	REGULATOR_SUPPLY("avdd_usb_pll", "tegra-ehci.1"),
@@ -102,7 +101,6 @@ static struct regulator_consumer_supply max77663_ldo2_supply[] = {
 };
 
 static struct regulator_consumer_supply max77663_ldo3_supply[] = {
-	REGULATOR_SUPPLY("vmmc", NULL),
 };
 
 static struct regulator_consumer_supply max77663_ldo4_supply[] = {
@@ -111,6 +109,7 @@ static struct regulator_consumer_supply max77663_ldo4_supply[] = {
 
 static struct regulator_consumer_supply max77663_ldo5_supply[] = {
 	REGULATOR_SUPPLY("vdd_sensor_2v8", NULL),
+	REGULATOR_SUPPLY("vdd", "0-0068"),
 };
 
 static struct regulator_consumer_supply max77663_ldo6_supply[] = {
@@ -149,31 +148,31 @@ static struct max77663_regulator_fps_cfg max77663_fps_cfgs[] = {
 	},
 };
 
-#define MAX77663_PDATA_INIT(_rid, _id, _min_uV, _max_uV, _supply_reg,		\
+#define MAX77663_PDATA_INIT(_rid, _id, _min_uV, _max_uV, _supply_reg,	\
 			    _always_on, _boot_on, _apply_uV,		\
 			    _fps_src, _fps_pu_period, _fps_pd_period, _flags) \
+	static struct regulator_init_data max77663_regulator_idata_##_id = {  \
+		.supply_regulator = _supply_reg,			\
+		.constraints = {					\
+			.name = max77663_rails(_id),			\
+			.min_uV = _min_uV,				\
+			.max_uV = _max_uV,				\
+			.valid_modes_mask = (REGULATOR_MODE_NORMAL |	\
+					     REGULATOR_MODE_STANDBY),	\
+			.valid_ops_mask = (REGULATOR_CHANGE_MODE |	\
+					   REGULATOR_CHANGE_STATUS |	\
+					   REGULATOR_CHANGE_VOLTAGE),	\
+			.always_on = _always_on,			\
+			.boot_on = _boot_on,				\
+			.apply_uV = _apply_uV,				\
+		},							\
+		.num_consumer_supplies =				\
+				ARRAY_SIZE(max77663_##_id##_supply),	\
+		.consumer_supplies = max77663_##_id##_supply,		\
+	};								\
 	static struct max77663_regulator_platform_data max77663_regulator_pdata_##_id = \
 	{								\
-		.init_data = {						\
-			.constraints = {				\
-				.name = max77663_rails(_id),		\
-				.min_uV = _min_uV,			\
-				.max_uV = _max_uV,			\
-				.valid_modes_mask = (REGULATOR_MODE_NORMAL |  \
-						     REGULATOR_MODE_STANDBY), \
-				.valid_ops_mask = (REGULATOR_CHANGE_MODE |    \
-						   REGULATOR_CHANGE_STATUS |  \
-						   REGULATOR_CHANGE_VOLTAGE), \
-				.always_on = _always_on,		\
-				.boot_on = _boot_on,			\
-				.apply_uV = _apply_uV,			\
-			},						\
-			.num_consumer_supplies =			\
-				ARRAY_SIZE(max77663_##_id##_supply),	\
-			.consumer_supplies = max77663_##_id##_supply,	\
-			.supply_regulator = _supply_reg,		\
-		},							\
-		.reg_init_data = &max77663_regulator_idata_##_id,       \
+		.reg_init_data = &max77663_regulator_idata_##_id,	\
 		.id = MAX77663_REGULATOR_ID_##_rid,			\
 		.fps_src = _fps_src,					\
 		.fps_pu_period = _fps_pu_period,			\
@@ -181,7 +180,6 @@ static struct max77663_regulator_fps_cfg max77663_fps_cfgs[] = {
 		.fps_cfgs = max77663_fps_cfgs,				\
 		.flags = _flags,					\
 	}
-
 
 MAX77663_PDATA_INIT(SD0, sd0,  600000, 3387500, NULL, 1, 0, 0,
 		    FPS_SRC_NONE, -1, -1, EN2_CTRL_SD0);
@@ -272,8 +270,8 @@ static struct max77663_gpio_config max77663_gpio_cfgs[] = {
 	{
 		.gpio = MAX77663_GPIO4,
 		.dir = GPIO_DIR_OUT,
-		.dout = GPIO_DOUT_LOW,
-		.out_drv = GPIO_OUT_DRV_OPEN_DRAIN,
+		.dout = GPIO_DOUT_HIGH,
+		.out_drv = GPIO_OUT_DRV_PUSH_PULL,
 		.alternate = GPIO_ALT_ENABLE,
 	},
 	{
@@ -449,7 +447,7 @@ FIXED_REG(3, en_1v8_cam_a00,	en_1v8_cam,		max77663_rails(sd2),
 FIXED_REG(4, en_vddio_vid_a00,	en_vddio_vid,		NULL,
 	0,	0,	TEGRA_GPIO_PB2,				true,	0,	5000);
 FIXED_REG(5, en_3v3_modem_a00,	en_3v3_modem,		NULL,
-	1,	1,	TEGRA_GPIO_PP0,				true,	0,	3300);
+	0,	1,	TEGRA_GPIO_PP0,				true,	0,	3300);
 FIXED_REG(6, en_vdd_pnl_a00,	en_vdd_pnl,		FIXED_SUPPLY(en_3v3_sys_a00),
 	0,	0,	TEGRA_GPIO_PW1,				true,	0,	3300);
 FIXED_REG(7, en_cam3_ldo_a00,	en_cam3_ldo,		FIXED_SUPPLY(en_3v3_sys_a00),
@@ -471,7 +469,7 @@ FIXED_REG(3, en_1v8_cam_a01,	en_1v8_cam,		max77663_rails(sd2),
 FIXED_REG(4, en_vddio_vid_a01,	en_vddio_vid,		NULL,
 	0,	0,	TEGRA_GPIO_PB2,				true,	0,	5000);
 FIXED_REG(5, en_3v3_modem_a01,	en_3v3_modem,		NULL,
-	1,	1,	TEGRA_GPIO_PP0,				true,	0,	3300);
+	0,	1,	TEGRA_GPIO_PP0,				true,	0,	3300);
 FIXED_REG(6, en_vdd_pnl_a01,	en_vdd_pnl,		FIXED_SUPPLY(en_3v3_sys_a01),
 	0,	1,	TEGRA_GPIO_PW1,				true,	0,	3300);
 FIXED_REG(7, en_cam3_ldo_a01,	en_cam3_ldo,		FIXED_SUPPLY(en_3v3_sys_a01),
