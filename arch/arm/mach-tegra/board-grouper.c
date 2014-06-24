@@ -880,6 +880,7 @@ static void __init tegra_grouper_init(void)
 	tegra_clk_init_from_table(grouper_clk_init_table);
 	tegra_enable_pinmux();
 	tegra_smmu_init()
+	tegra_soc_device_init("grouper");
 	grouper_pinmux_init();
 	grouper_i2c_init();
 	grouper_spi_init();
