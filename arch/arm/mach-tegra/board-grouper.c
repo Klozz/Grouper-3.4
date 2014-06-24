@@ -291,7 +291,7 @@ static struct i2c_board_info grouper_eeprom_mac_add = {
 };
 
 static struct regulator_consumer_supply smb349_vbus_supply[] = {
-	REGULATOR_SUPPLY("usb_bat_chg", NULL),
+	REGULATOR_SUPPLY("usb_bat_chg", "tegra-udc.0"),
 };
 
 static struct regulator_consumer_supply smb349_otg_vbus_supply[] = {
