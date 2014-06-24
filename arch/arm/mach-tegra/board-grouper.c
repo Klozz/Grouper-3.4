@@ -951,5 +951,5 @@ MACHINE_START(GROUPER, "grouper")
 	.timer		= &tegra_timer,
 	.init_machine	= tegra_grouper_dt_init,
 	.restart	= tegra_assert_system_reset,
-	.dt_compat      = kai_dt_board_compat,
+	.dt_compat      = grouper_dt_board_compat,
 MACHINE_END

@@ -521,12 +521,12 @@ FIXED_REG(10, en_3v3_fuse_a01,	en_3v3_fuse,		FIXED_SUPPLY(en_3v3_sys_a01),
 	ADD_FIXED_REG(en_vdd_sdmmc1_a01),	\
 	ADD_FIXED_REG(en_3v3_fuse_a01),		\
 
-/* Gpio switch regulator platform data for Kai A00 */
+/* Gpio switch regulator platform data for Grouper A00 */
 static struct platform_device *fixed_reg_devs_a00[] = {
 	E1565_A00_FIXED_REG
 };
 
-/* Gpio switch regulator platform data for Kai A01 */
+/* Gpio switch regulator platform data for Grouper A01 */
 static struct platform_device *fixed_reg_devs_a01[] = {
 	E1565_A01_FIXED_REG
 };
