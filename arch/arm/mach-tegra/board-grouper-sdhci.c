@@ -246,7 +246,7 @@ static int __init grouper_wifi_init(void)
 	if (rc)
 		pr_err("WLAN_IRQ gpio direction configuration failed:%d\n", rc);
 
-	grouper_wlan_data.irq = gpio_to_irq(GROUPER_WLAN_IRQ);
+	grouper_wlan_data.irq = gpio_to_irq(KAI_WLAN_IRQ);
 	if (wl12xx_set_platform_data(&grouper_wlan_data))
 		pr_err("Error setting wl12xx data\n");
 
