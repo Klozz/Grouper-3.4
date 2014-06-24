@@ -37,6 +37,7 @@
 #include "board-grouper.h"
 #include "devices.h"
 #include "gpio-names.h"
+#include "tegra3_host1x_devices.h"
 
 /* grouper default display board pins */
 #define grouper_lvds_avdd_en		TEGRA_GPIO_PH6
