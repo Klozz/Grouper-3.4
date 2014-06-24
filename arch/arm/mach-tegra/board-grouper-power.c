@@ -183,16 +183,16 @@ static struct max77663_regulator_fps_cfg max77663_fps_cfgs[] = {
 	}
 
 MAX77663_PDATA_INIT(SD0, sd0,  600000, 3387500, NULL, 1, 0, 0,
-		    0, 0, -1, FPS_SRC_NONE, -1, -1, EN2_CTRL_SD0 | SD_FSRADE_DISABLE);
+		    0, 0, -1, FPS_SRC_NONE, -1, -1, EN2_CTRL_SD0);
 
 MAX77663_PDATA_INIT(SD1, sd1,  800000, 1587500, NULL, 1, 0, 0,
-		    1, 1, -1, FPS_SRC_1, FPS_POWER_PERIOD_0, -1, SD_FSRADE_DISABLE);
+		    1, 1, -1, FPS_SRC_1, FPS_POWER_PERIOD_1, FPS_POWER_PERIOD_6, 0);
 
 MAX77663_PDATA_INIT(SD2, sd2,  1800000, 1800000, NULL, 1, 0, 0,
-		    1, 1, -1, FPS_SRC_NONE, -1, -1, 0);
+		    1, 1, -1, FPS_SRC_0, -1, -1, 0);
 
 MAX77663_PDATA_INIT(SD3, sd3,  600000, 3387500, NULL, 1, 0, 0,
-		    1, 1, -1, FPS_SRC_NONE, -1, -1, 0);
+		    1, 1, -1, FPS_SRC_0, -1, -1, 0);
 
 MAX77663_PDATA_INIT(LDO0, ldo0, 800000, 2350000, max77663_rails(sd3), 1, 0, 0,
 		    1, 1, -1, FPS_SRC_1, -1, -1, 0);
@@ -204,7 +204,7 @@ MAX77663_PDATA_INIT(LDO2, ldo2, 800000, 3950000, NULL, 1, 0, 0,
 		    1, 1, -1, FPS_SRC_1, -1, -1, 0);
 
 MAX77663_PDATA_INIT(LDO3, ldo3, 800000, 3950000, NULL, 1, 0, 0,
-		    1, 1, -1, FPS_SRC_NONE, -1, -1, 0);
+		    1, 1, -1, FPS_SRC_1, -1, -1, 0);
 
 MAX77663_PDATA_INIT(LDO4, ldo4, 800000, 1587500, NULL, 0, 0, 0,
 		    1, 1, 1000000, FPS_SRC_0, -1, -1, LDO4_EN_TRACKING);
@@ -264,15 +264,15 @@ static struct max77663_gpio_config max77663_gpio_cfgs[] = {
 	{
 		.gpio = MAX77663_GPIO3,
 		.dir = GPIO_DIR_OUT,
-		.dout = GPIO_DOUT_HIGH,
+		.dout = GPIO_DOUT_LOW,
 		.out_drv = GPIO_OUT_DRV_OPEN_DRAIN,
-		.alternate = GPIO_ALT_DISABLE,
+		.alternate = GPIO_ALT_ENABLE,
 	},
 	{
 		.gpio = MAX77663_GPIO4,
 		.dir = GPIO_DIR_OUT,
-		.dout = GPIO_DOUT_HIGH,
-		.out_drv = GPIO_OUT_DRV_PUSH_PULL,
+		.dout = GPIO_DOUT_LOW,
+		.out_drv = GPIO_OUT_DRV_OPEN_DRAIN,
 		.alternate = GPIO_ALT_ENABLE,
 	},
 	{
