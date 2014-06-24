@@ -18,14 +18,15 @@
 
 #include <linux/kernel.h>
 #include <linux/init.h>
+#include <linux/platform_data/tegra_emc.h>
 
 #include "board.h"
 #include "board-grouper.h"
 #include "tegra3_emc.h"
 #include "fuse.h"
+#include "devices.h"
 
-
-static const struct tegra_emc_table grouper_emc_tables_h5tc4g[] = {
+static const struct tegra30_emc_table grouper_emc_tables_h5tc4g[] = {
 	{
 		0x32,       /* Rev 3.2 */
 		12750,      /* SDRAM frequency */
@@ -868,10 +869,20 @@ static const struct tegra_emc_table grouper_emc_tables_h5tc4g[] = {
 	},
 };
 
+static struct tegra30_emc_pdata grouper_emc_chip_h5tc4g = {
+	.description = "h5tc4g",
+	.tables = (struct tegra30_emc_table *)grouper_emc_tables_h5tc4g,
+	.num_tables = ARRAY_SIZE(grouper_emc_tables_h5tc4g)
+};
+
 int grouper_emc_init(void)
 {
-	tegra_init_emc(grouper_emc_tables_h5tc4g,
-		       ARRAY_SIZE(grouper_emc_tables_h5tc4g));
+	struct tegra30_emc_pdata *emc_platdata = &grouper_emc_chip_h5tc4g;
+
+	tegra_emc_device.dev.platform_data = emc_platdata;
+	platform_device_register(&tegra_emc_device);
+
+	tegra30_init_emc();
 
 	return 0;
 }
