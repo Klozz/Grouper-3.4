@@ -44,6 +44,8 @@
 #include <linux/leds.h>
 #include <linux/i2c/at24.h>
 
+#include <asm/hardware/gic.h>
+
 #include <mach/clk.h>
 #include <mach/iomap.h>
 #include <mach/irqs.h>
