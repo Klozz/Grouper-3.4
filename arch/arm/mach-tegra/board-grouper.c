@@ -636,12 +636,9 @@ static struct platform_device *grouper_devices[] __initdata = {
 	&tegra_pmu_device,
 	&tegra_rtc_device,
 	&tegra_udc_device,
-#if defined(CONFIG_TEGRA_IOVMM_SMMU) || defined(CONFIG_TEGRA_IOMMU_SMMU)
-	&tegra_smmu_device,
-#endif
-	 &tegra_wdt0_device,
-	 &tegra_wdt1_device,
-	 &tegra_wdt2_device,
+	&tegra_wdt0_device,
+	&tegra_wdt1_device,
+	&tegra_wdt2_device,
 #if defined(CONFIG_TEGRA_AVP)
 	&tegra_avp_device,
 #endif
@@ -876,6 +873,7 @@ static void __init tegra_grouper_init(void)
 				ARRAY_SIZE(throttle_list));
 	tegra_clk_init_from_table(grouper_clk_init_table);
 	tegra_enable_pinmux();
+	tegra_smmu_init()
 	grouper_pinmux_init();
 	grouper_i2c_init();
 	grouper_spi_init();
