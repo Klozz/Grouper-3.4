@@ -624,7 +624,7 @@ static int __init grouper_touch_init(void)
 			gpio_to_irq(TOUCH_GPIO_IRQ_RAYDIUM_SPI);
 		touch_init_raydium(TOUCH_GPIO_IRQ_RAYDIUM_SPI,
 					TOUCH_GPIO_RST_RAYDIUM_SPI,
-					&rm31080ts_grouper_007s_data,
+					&rm31080ts_grouper_007_data,
 					&rm31080a_grouper_spi_board[0],
 					ARRAY_SIZE(rm31080a_grouper_spi_board));
 		break;
@@ -798,7 +798,7 @@ static void __init tegra_grouper_init(void)
 {
 	tegra_clk_init_from_table(grouper_clk_init_table);
 	tegra_enable_pinmux();
-	tegra_smmu_init()
+	tegra_smmu_init();
 	tegra_soc_device_init("grouper");
 	grouper_pinmux_init();
 	grouper_i2c_init();
