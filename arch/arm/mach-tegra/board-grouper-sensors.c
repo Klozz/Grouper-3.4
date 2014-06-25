@@ -25,10 +25,12 @@
 #include <linux/cm3217.h>
 #include <linux/mpu.h>
 #include <linux/regulator/consumer.h>
+#include <linux/gpio.h>
 #include <linux/slab.h>
-#include <mach/gpio.h>
+#include <mach/gpio-tegra.h>
 #include <asm/mach-types.h>
 #include <media/ov2710.h>
+#include <mach/thermal.h>
 
 #include <mach/gpio-tegra.h>
 
@@ -39,42 +41,94 @@
 static struct regulator *grouper_1v8_cam3;
 static struct regulator *grouper_vdd_cam3;
 
+#ifndef CONFIG_TEGRA_INTERNAL_TSENSOR_EDP_SUPPORT
+static int nct_get_temp(void *_data, long *temp)
+{
+       struct nct1008_data *data = _data;
+       return nct1008_thermal_get_temp(data, temp);
+}
+
+
+static int nct_set_limits(void *_data,
+                       long lo_limit_milli,
+                       long hi_limit_milli)
+{
+       struct nct1008_data *data = _data;
+       return nct1008_thermal_set_limits(data,
+                                       lo_limit_milli,
+                                       hi_limit_milli);
+}
+
+static int nct_set_alert(void *_data,
+                               void (*alert_func)(void *),
+                               void *alert_data)
+{
+       struct nct1008_data *data = _data;
+       return nct1008_thermal_set_alert(data, alert_func, alert_data);
+}
+
+
+static void nct1008_probe_callback(struct nct1008_data *data)
+{
+       struct tegra_thermal_device *thermal_device;
+
+       thermal_device = kzalloc(sizeof(struct tegra_thermal_device),
+                                       GFP_KERNEL);
+       if (!thermal_device) {
+               pr_err("unable to allocate thermal device\n");
+               return;
+       }
+
+       thermal_device->name = "nct72";
+       thermal_device->data = data;
+       thermal_device->id = THERMAL_DEVICE_ID_NCT_EXT;
+       thermal_device->get_temp = nct_get_temp;
+       thermal_device->set_limits = nct_set_limits;
+       thermal_device->set_alert = nct_set_alert;
+
+       tegra_thermal_device_register(thermal_device);
+}
+#endif
+
 static struct nct1008_platform_data grouper_nct1008_pdata = {
-	.supported_hwrev = true,
-	.ext_range = true,
-	.conv_rate = 0x08,
-	.offset = 8, /* 4 * 2C. 1C for device accuracies */
+       .supported_hwrev = true,
+       .ext_range = true,
+       .conv_rate = 0x09,
+       .offset = 8, /* 4 * 2C. 1C for device accuracies */
+#ifndef CONFIG_TEGRA_INTERNAL_TSENSOR_EDP_SUPPORT
+       .probe_callback = nct1008_probe_callback,
+#endif
 };
 
 static struct i2c_board_info grouper_i2c4_nct1008_board_info[] = {
-	{
-		I2C_BOARD_INFO("nct1008", 0x4C),
-		.platform_data = &grouper_nct1008_pdata,
-		.irq = -1,
-	}
+       {
+               I2C_BOARD_INFO("nct72", 0x4C),
+               .platform_data = &grouper_nct1008_pdata,
+               .irq = -1,
+       }
 };
 
 static int grouper_nct1008_init(void)
 {
-	int ret = 0;
+       int ret = 0;
 
-	/* FIXME: enable irq when throttling is supported */
-	grouper_i2c4_nct1008_board_info[0].irq =
-		gpio_to_irq(GROUPER_TEMP_ALERT_GPIO);
+       /* FIXME: enable irq when throttling is supported */
+       grouper_i2c4_nct1008_board_info[0].irq =
+               gpio_to_irq(GROUPER_TEMP_ALERT_GPIO);
 
-	ret = gpio_request(GROUPER_TEMP_ALERT_GPIO, "temp_alert");
-	if (ret < 0) {
-		pr_err("%s: gpio_request failed\n", __func__);
-		return ret;
-	}
+       ret = gpio_request(GROUPER_TEMP_ALERT_GPIO, "temp_alert");
+       if (ret < 0) {
+               pr_err("%s: gpio_request failed\n", __func__);
+               return ret;
+       }
 
-	ret = gpio_direction_input(GROUPER_TEMP_ALERT_GPIO);
-	if (ret < 0) {
-		pr_err("%s: set gpio to input failed\n", __func__);
-		gpio_free(GROUPER_TEMP_ALERT_GPIO);
-	}
+       ret = gpio_direction_input(GROUPER_TEMP_ALERT_GPIO);
+       if (ret < 0) {
+               pr_err("%s: set gpio to input failed\n", __func__);
+               gpio_free(GROUPER_TEMP_ALERT_GPIO);
+       }
 
-	return ret;
+       return ret;
 }
 
 static struct cm3217_platform_data grouper_cm3217_pdata = {
@@ -124,7 +178,7 @@ static int grouper_ov2710_power_on(void)
 		grouper_vdd_cam3 = regulator_get(NULL, "vdd_cam3");
 		if (WARN_ON(IS_ERR(grouper_vdd_cam3))) {
 			pr_err("%s: couldn't get regulator vdd_cam3: %d\n",
-				__func__, PTR_ERR(grouper_vdd_cam3));
+				__func__, (int)PTR_ERR(grouper_vdd_cam3));
 			goto reg_get_vdd_cam3_fail;
 		}
 	}
@@ -134,7 +188,7 @@ static int grouper_ov2710_power_on(void)
 		grouper_1v8_cam3 = regulator_get(NULL, "vdd_1v8_cam3");
 		if (WARN_ON(IS_ERR(grouper_1v8_cam3))) {
 			pr_err("%s: couldn't get regulator vdd_1v8_cam3: %d\n",
-				__func__, PTR_ERR(grouper_1v8_cam3));
+				__func__, (int)PTR_ERR(grouper_1v8_cam3));
 			goto reg_get_vdd_1v8_cam3_fail;
 		}
 	}
