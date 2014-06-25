@@ -30,9 +30,8 @@
 #include <mach/gpio-tegra.h>
 #include <asm/mach-types.h>
 #include <media/ov2710.h>
-#include <mach/thermal.h>
 
-#include <mach/gpio-tegra.h>
+#include <mach/edp.h>
 
 #include "board.h"
 #include "board-grouper.h"
@@ -41,63 +40,62 @@
 static struct regulator *grouper_1v8_cam3;
 static struct regulator *grouper_vdd_cam3;
 
-#ifndef CONFIG_TEGRA_INTERNAL_TSENSOR_EDP_SUPPORT
-static int nct_get_temp(void *_data, long *temp)
+static struct throttle_table tj_throttle_table[] = {
+               /* CPU_THROT_LOW cannot be used by other than CPU */
+               /* NO_CAP cannot be used by CPU */
+               /*    CPU,    CBUS,    SCLK,     EMC */
+               { { 1000000,  NO_CAP,  NO_CAP,  NO_CAP } },
+               { {  760000,  NO_CAP,  NO_CAP,  NO_CAP } },
+               { {  760000,  NO_CAP,  NO_CAP,  NO_CAP } },
+               { {  620000,  NO_CAP,  NO_CAP,  NO_CAP } },
+               { {  620000,  NO_CAP,  NO_CAP,  NO_CAP } },
+               { {  620000,  437000,  NO_CAP,  NO_CAP } },
+               { {  620000,  352000,  NO_CAP,  NO_CAP } },
+               { {  475000,  352000,  NO_CAP,  NO_CAP } },
+               { {  475000,  352000,  NO_CAP,  NO_CAP } },
+               { {  475000,  352000,  250000,  375000 } },
+               { {  475000,  352000,  250000,  375000 } },
+               { {  475000,  247000,  204000,  375000 } },
+               { {  475000,  247000,  204000,  204000 } },
+               { {  475000,  247000,  204000,  204000 } },
+         { { CPU_THROT_LOW,  247000,  204000,  102000 } },
+};
+
+
+static struct balanced_throttle tj_throttle = {
+       .throt_tab_size = ARRAY_SIZE(tj_throttle_table),
+       .throt_tab = tj_throttle_table,
+};
+
+static int __init grouper_throttle_init(void)
 {
-       struct nct1008_data *data = _data;
-       return nct1008_thermal_get_temp(data, temp);
+       if (machine_is_grouper())
+               balanced_throttle_register(&tj_throttle, "tegra-balanced");
+       return 0;
 }
-
-
-static int nct_set_limits(void *_data,
-                       long lo_limit_milli,
-                       long hi_limit_milli)
-{
-       struct nct1008_data *data = _data;
-       return nct1008_thermal_set_limits(data,
-                                       lo_limit_milli,
-                                       hi_limit_milli);
-}
-
-static int nct_set_alert(void *_data,
-                               void (*alert_func)(void *),
-                               void *alert_data)
-{
-       struct nct1008_data *data = _data;
-       return nct1008_thermal_set_alert(data, alert_func, alert_data);
-}
-
-
-static void nct1008_probe_callback(struct nct1008_data *data)
-{
-       struct tegra_thermal_device *thermal_device;
-
-       thermal_device = kzalloc(sizeof(struct tegra_thermal_device),
-                                       GFP_KERNEL);
-       if (!thermal_device) {
-               pr_err("unable to allocate thermal device\n");
-               return;
-       }
-
-       thermal_device->name = "nct72";
-       thermal_device->data = data;
-       thermal_device->id = THERMAL_DEVICE_ID_NCT_EXT;
-       thermal_device->get_temp = nct_get_temp;
-       thermal_device->set_limits = nct_set_limits;
-       thermal_device->set_alert = nct_set_alert;
-
-       tegra_thermal_device_register(thermal_device);
-}
-#endif
+module_init(grouper_throttle_init);
 
 static struct nct1008_platform_data grouper_nct1008_pdata = {
        .supported_hwrev = true,
        .ext_range = true,
        .conv_rate = 0x09,
        .offset = 8, /* 4 * 2C. 1C for device accuracies */
-#ifndef CONFIG_TEGRA_INTERNAL_TSENSOR_EDP_SUPPORT
-       .probe_callback = nct1008_probe_callback,
-#endif
+
+       .shutdown_ext_limit = 90, /* C */
+       .shutdown_local_limit = 100, /* C */
+
+       .num_trips = 1,
+       .trips = {
+               /* Thermal Throttling */
+               [0] = {
+                       .cdev_type = "tegra-balanced",
+                       .trip_temp = 80000,
+                       .trip_type = THERMAL_TRIP_PASSIVE,
+                       .upper = THERMAL_NO_LIMIT,
+                       .lower = THERMAL_NO_LIMIT,
+                       .hysteresis = 0,
+               },
+       },
 };
 
 static struct i2c_board_info grouper_i2c4_nct1008_board_info[] = {
@@ -107,6 +105,7 @@ static struct i2c_board_info grouper_i2c4_nct1008_board_info[] = {
                .irq = -1,
        }
 };
+
 
 static int grouper_nct1008_init(void)
 {
@@ -128,6 +127,8 @@ static int grouper_nct1008_init(void)
                gpio_free(GROUPER_TEMP_ALERT_GPIO);
        }
 
+       tegra_platform_edp_init(grouper_nct1008_pdata.trips,
+                               &grouper_nct1008_pdata.num_trips, 0);
        return ret;
 }
 
@@ -169,13 +170,20 @@ static int grouper_camera_init(void)
 	return 0;
 }
 
-static int grouper_ov2710_power_on(void)
+static int grouper_ov2710_power_on(struct device *dev)
 {
-	gpio_direction_output(CAM2_POWER_DWN_GPIO, 0);
-	mdelay(10);
+       if (grouper_1v8_cam3 == NULL) {
+               grouper_1v8_cam3 = regulator_get(dev, "vdd_1v8_cam3");
+               if (WARN_ON(IS_ERR(grouper_1v8_cam3))) {
+                       pr_err("%s: couldn't get regulator vdd_1v8_cam3: %d\n",
+                               __func__, (int)PTR_ERR(grouper_1v8_cam3));
+                       goto reg_get_vdd_1v8_cam3_fail;
+               }
+       }
+       regulator_enable(grouper_1v8_cam3);
 
 	if (grouper_vdd_cam3 == NULL) {
-		grouper_vdd_cam3 = regulator_get(NULL, "vdd_cam3");
+		grouper_vdd_cam3 = regulator_get(dev, "vdd_cam3");
 		if (WARN_ON(IS_ERR(grouper_vdd_cam3))) {
 			pr_err("%s: couldn't get regulator vdd_cam3: %d\n",
 				__func__, (int)PTR_ERR(grouper_vdd_cam3));
@@ -184,42 +192,37 @@ static int grouper_ov2710_power_on(void)
 	}
 	regulator_enable(grouper_vdd_cam3);
 
-	if (grouper_1v8_cam3 == NULL) {
-		grouper_1v8_cam3 = regulator_get(NULL, "vdd_1v8_cam3");
-		if (WARN_ON(IS_ERR(grouper_1v8_cam3))) {
-			pr_err("%s: couldn't get regulator vdd_1v8_cam3: %d\n",
-				__func__, (int)PTR_ERR(grouper_1v8_cam3));
-			goto reg_get_vdd_1v8_cam3_fail;
-		}
-	}
-	regulator_enable(grouper_1v8_cam3);
-	mdelay(5);
+	mdelay(5);	
+	
+       gpio_direction_output(CAM2_POWER_DWN_GPIO, 0);
+       mdelay(10);
 
 	gpio_direction_output(CAM2_RST_GPIO, 1);
 	mdelay(10);
 
 	return 0;
 
-reg_get_vdd_1v8_cam3_fail:
-	grouper_1v8_cam3 = NULL;
-	regulator_put(grouper_vdd_cam3);
 
 reg_get_vdd_cam3_fail:
 	grouper_vdd_cam3 = NULL;
 
+reg_get_vdd_1v8_cam3_fail:
+       grouper_1v8_cam3 = NULL;
+
 	return -ENODEV;
 }
 
-static int grouper_ov2710_power_off(void)
+static int grouper_ov2710_power_off(struct device *dev)
 {
+	gpio_direction_output(CAM2_RST_GPIO, 0);
+
 	gpio_direction_output(CAM2_POWER_DWN_GPIO, 1);
 
-	gpio_direction_output(CAM2_RST_GPIO, 0);
+	if (grouper_vdd_cam3)
+		regulator_disable(grouper_vdd_cam3);
 
 	if (grouper_1v8_cam3)
 		regulator_disable(grouper_1v8_cam3);
-	if (grouper_vdd_cam3)
-		regulator_disable(grouper_vdd_cam3);
 
 	return 0;
 }
@@ -238,35 +241,15 @@ static struct i2c_board_info grouper_i2c2_board_info[] = {
 
 /* MPU board file definition */
 
-#if (MPU_GYRO_TYPE == MPU_TYPE_MPU3050)
-#define MPU_GYRO_NAME		"mpu3050"
-#endif
-#if (MPU_GYRO_TYPE == MPU_TYPE_MPU6050)
-#define MPU_GYRO_NAME		"mpu6050"
-#endif
-
 static struct mpu_platform_data mpu_gyro_data = {
 	.int_config	= 0x10,
 	.level_shifter	= 0,
 	.orientation	= MPU_GYRO_ORIENTATION,
 };
 
-#if (MPU_GYRO_TYPE == MPU_TYPE_MPU3050)
-static struct ext_slave_platform_data mpu_accel_data = {
-	.address	= MPU_ACCEL_ADDR,
-	.irq		= 0,
-	.adapt_num	= MPU_ACCEL_BUS_NUM,
-	.bus		= EXT_SLAVE_BUS_SECONDARY,
-	.orientation	= MPU_ACCEL_ORIENTATION,
-};
-#endif
-
-static struct ext_slave_platform_data mpu_compass_data = {
-	.address	= MPU_COMPASS_ADDR,
-	.irq		= 0,
-	.adapt_num	= MPU_COMPASS_BUS_NUM,
-	.bus		= EXT_SLAVE_BUS_PRIMARY,
-	.orientation	= MPU_COMPASS_ORIENTATION,
+static struct mpu_platform_data mpu_compass_data = {
+       .orientation    = MPU_COMPASS_ORIENTATION,
+       .sec_slave_type = SECONDARY_SLAVE_TYPE_NONE,
 };
 
 static struct i2c_board_info __initdata inv_mpu_i2c0_board_info[] = {
@@ -274,12 +257,6 @@ static struct i2c_board_info __initdata inv_mpu_i2c0_board_info[] = {
 		I2C_BOARD_INFO(MPU_GYRO_NAME, MPU_GYRO_ADDR),
 		.platform_data = &mpu_gyro_data,
 	},
-#if (MPU_GYRO_TYPE == MPU_TYPE_MPU3050)
-	{
-		I2C_BOARD_INFO(MPU_ACCEL_NAME, MPU_ACCEL_ADDR),
-		.platform_data = &mpu_accel_data,
-	},
-#endif
 	{
 		I2C_BOARD_INFO(MPU_COMPASS_NAME, MPU_COMPASS_ADDR),
 		.platform_data = &mpu_compass_data,
@@ -289,26 +266,10 @@ static struct i2c_board_info __initdata inv_mpu_i2c0_board_info[] = {
 static void mpuirq_init(void)
 {
 	int i = 0;
+	int ret;
 
 	pr_info("*** MPU START *** mpuirq_init...\n");
 
-#if (MPU_GYRO_TYPE == MPU_TYPE_MPU3050)
-#if MPU_ACCEL_IRQ_GPIO
-	/* ACCEL-IRQ assignment */
-	ret = gpio_request(MPU_ACCEL_IRQ_GPIO, MPU_ACCEL_NAME);
-	if (ret < 0) {
-		pr_err("%s: gpio_request failed %d\n", __func__, ret);
-		return;
-	}
-
-	ret = gpio_direction_input(MPU_ACCEL_IRQ_GPIO);
-	if (ret < 0) {
-		pr_err("%s: gpio_direction_input failed %d\n", __func__, ret);
-		gpio_free(MPU_ACCEL_IRQ_GPIO);
-		return;
-	}
-#endif
-#endif
 
 	/* MPU-IRQ assignment */
 	ret = gpio_request(MPU_GYRO_IRQ_GPIO, MPU_GYRO_NAME);
@@ -325,13 +286,7 @@ static void mpuirq_init(void)
 	}
 	pr_info("*** MPU END *** mpuirq_init...\n");
 	inv_mpu_i2c0_board_info[i++].irq = gpio_to_irq(MPU_GYRO_IRQ_GPIO);
-#if (MPU_GYRO_TYPE == MPU_TYPE_MPU3050)
-#if MPU_ACCEL_IRQ_GPIO
-	inv_mpu_i2c0_board_info[i].irq = gpio_to_irq(MPU_ACCEL_IRQ_GPIO);
-#endif
-	i++
-#endif
-#if MPU_COMPASS_IRQ_GPIO
+#ifdef MPU_COMPASS_IRQ_GPIO
 	inv_mpu_i2c0_board_info[i++].irq = gpio_to_irq(MPU_COMPASS_IRQ_GPIO);
 #endif
 	i2c_register_board_info(MPU_GYRO_BUS_NUM, inv_mpu_i2c0_board_info,
