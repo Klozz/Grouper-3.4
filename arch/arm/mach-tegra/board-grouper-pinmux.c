@@ -468,22 +468,23 @@ static void __init grouper_pinmux_audio_init(void)
                        __func__, err);
                        gpio_free(TEGRA_GPIO_CDC_IRQ);
        }
+}
 
 /* We are disabling this code for now. */
-#define GPIO_INIT_PIN_MODE(_gpio, _is_input, _value)	\
+#define GPIO_INIT_PIN_MODE(_gpio, _is_input, _value) \
 	{					\
 		.gpio_nr	= _gpio,	\
 		.is_input	= _is_input,	\
 		.value		= _value,	\
 	}
 
-struct gpio_init_pin_info init_gpio_mode_grouper_common[] = {
+static struct gpio_init_pin_info init_gpio_mode_grouper_common[] = {
 	GPIO_INIT_PIN_MODE(TEGRA_GPIO_PDD7, false, 0),
 	GPIO_INIT_PIN_MODE(TEGRA_GPIO_PCC6, false, 0),
-	GPIO_INIT_PIN_MODE(TEGRA_GPIO_PCC7, false, 1),
+	GPIO_INIT_PIN_MODE(TEGRA_GPIO_PR0, false, 1),
 };
 
-static void __init grouper_gpio_init_configure(void)
+void __init grouper_gpio_init_configure(void)
 {
 	int len;
 	int i;
@@ -504,6 +505,8 @@ int __init grouper_pinmux_init(void)
 	struct board_info board_info;
 	tegra_get_board_info(&board_info);
 	BUG_ON(board_info.board_id != BOARD_E1565);
+
+	tegra30_default_pinmux();
 	grouper_gpio_init_configure();
 
 	tegra_pinmux_config_table(grouper_pinmux_common, ARRAY_SIZE(grouper_pinmux_common));
@@ -533,7 +536,7 @@ struct gpio_init_pin_info pin_lpm_grouper_common[] = {
 	PIN_GPIO_LPM("GMI_CS1",   TEGRA_GPIO_PJ2, 1, 0),
 };
 
-static void set_unused_pin_gpio(struct gpio_init_pin_info *lpm_pin_info,
+void set_unused_pin_gpio(struct gpio_init_pin_info *lpm_pin_info,
 		int list_count)
 {
 	int i;
@@ -542,20 +545,22 @@ static void set_unused_pin_gpio(struct gpio_init_pin_info *lpm_pin_info,
 
 	for (i = 0; i < list_count; ++i) {
 		pin_info = (struct gpio_init_pin_info *)(lpm_pin_info + i);
-		if (!pin_info->is_gpio)
+		if (!pin_info->is_gpio) {
 			continue;
-
+		}
 		ret = gpio_request(pin_info->gpio_nr, pin_info->name);
 		if (ret < 0) {
 			pr_err("%s() Error in gpio_request() for gpio %d\n",
 					__func__, pin_info->gpio_nr);
 			continue;
 		}
-		if (pin_info->is_input)
+		if (pin_info->is_input) {
 			ret = gpio_direction_input(pin_info->gpio_nr);
-		else
+		}
+		else {
 			ret = gpio_direction_output(pin_info->gpio_nr,
 							pin_info->value);
+		}
 		if (ret < 0) {
 			pr_err("%s() Error in setting gpio %d to in/out\n",
 				__func__, pin_info->gpio_nr);

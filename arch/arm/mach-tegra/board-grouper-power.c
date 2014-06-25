@@ -35,12 +35,12 @@
 #include <mach/irqs.h>
 #include <mach/pinmux.h>
 #include <mach/edp.h>
+#include <mach/gpio-tegra.h>
 
 #include "gpio-names.h"
 #include "board.h"
 #include "board-grouper.h"
 #include "pm.h"
-#include "wakeups-t3.h"
 #include "tegra3_tsensor.h"
 
 #define PMC_CTRL		0x0
@@ -57,7 +57,10 @@ static struct regulator_consumer_supply max77663_sd1_supply[] = {
 static struct regulator_consumer_supply max77663_sd2_supply[] = {
 	REGULATOR_SUPPLY("vdd_gen1v8", NULL),
 	REGULATOR_SUPPLY("avdd_hdmi_pll", NULL),
-	REGULATOR_SUPPLY("avdd_usb_pll", NULL),
+	REGULATOR_SUPPLY("avdd_usb_pll", "tegra-udc.0"),
+	REGULATOR_SUPPLY("avdd_usb_pll", "tegra-ehci.0"),
+	REGULATOR_SUPPLY("avdd_usb_pll", "tegra-ehci.1"),
+	REGULATOR_SUPPLY("avdd_usb_pll", "tegra-ehci.2"),
 	REGULATOR_SUPPLY("avdd_osc", NULL),
 	REGULATOR_SUPPLY("vddio_sys", NULL),
 	REGULATOR_SUPPLY("vddio_sdmmc", "sdhci-tegra.3"),
@@ -98,7 +101,6 @@ static struct regulator_consumer_supply max77663_ldo2_supply[] = {
 };
 
 static struct regulator_consumer_supply max77663_ldo3_supply[] = {
-	REGULATOR_SUPPLY("vmmc", NULL),
 };
 
 static struct regulator_consumer_supply max77663_ldo4_supply[] = {
@@ -107,6 +109,7 @@ static struct regulator_consumer_supply max77663_ldo4_supply[] = {
 
 static struct regulator_consumer_supply max77663_ldo5_supply[] = {
 	REGULATOR_SUPPLY("vdd_sensor_2v8", NULL),
+	REGULATOR_SUPPLY("vdd", "0-0068"),
 };
 
 static struct regulator_consumer_supply max77663_ldo6_supply[] = {
@@ -145,33 +148,32 @@ static struct max77663_regulator_fps_cfg max77663_fps_cfgs[] = {
 	},
 };
 
-#define MAX77663_PDATA_INIT(_id, _min_uV, _max_uV, _supply_reg,		\
+#define MAX77663_PDATA_INIT(_rid, _id, _min_uV, _max_uV, _supply_reg,	\
 			    _always_on, _boot_on, _apply_uV,		\
-			    _init_apply, _init_enable, _init_uV,	\
 			    _fps_src, _fps_pu_period, _fps_pd_period, _flags) \
+	static struct regulator_init_data max77663_regulator_idata_##_id = {  \
+		.supply_regulator = _supply_reg,			\
+		.constraints = {					\
+			.name = max77663_rails(_id),			\
+			.min_uV = _min_uV,				\
+			.max_uV = _max_uV,				\
+			.valid_modes_mask = (REGULATOR_MODE_NORMAL |	\
+					     REGULATOR_MODE_STANDBY),	\
+			.valid_ops_mask = (REGULATOR_CHANGE_MODE |	\
+					   REGULATOR_CHANGE_STATUS |	\
+					   REGULATOR_CHANGE_VOLTAGE),	\
+			.always_on = _always_on,			\
+			.boot_on = _boot_on,				\
+			.apply_uV = _apply_uV,				\
+		},							\
+		.num_consumer_supplies =				\
+				ARRAY_SIZE(max77663_##_id##_supply),	\
+		.consumer_supplies = max77663_##_id##_supply,		\
+	};								\
 	static struct max77663_regulator_platform_data max77663_regulator_pdata_##_id = \
 	{								\
-		.init_data = {						\
-			.constraints = {				\
-				.min_uV = _min_uV,			\
-				.max_uV = _max_uV,			\
-				.valid_modes_mask = (REGULATOR_MODE_NORMAL |  \
-						     REGULATOR_MODE_STANDBY), \
-				.valid_ops_mask = (REGULATOR_CHANGE_MODE |    \
-						   REGULATOR_CHANGE_STATUS |  \
-						   REGULATOR_CHANGE_VOLTAGE), \
-				.always_on = _always_on,		\
-				.boot_on = _boot_on,			\
-				.apply_uV = _apply_uV,			\
-			},						\
-			.num_consumer_supplies =			\
-				ARRAY_SIZE(max77663_##_id##_supply),	\
-			.consumer_supplies = max77663_##_id##_supply,	\
-			.supply_regulator = _supply_reg,		\
-		},							\
-		.init_apply = _init_apply,				\
-		.init_enable = _init_enable,				\
-		.init_uV = _init_uV,					\
+		.reg_init_data = &max77663_regulator_idata_##_id,	\
+		.id = MAX77663_REGULATOR_ID_##_rid,			\
 		.fps_src = _fps_src,					\
 		.fps_pu_period = _fps_pu_period,			\
 		.fps_pd_period = _fps_pd_period,			\
@@ -179,60 +181,48 @@ static struct max77663_regulator_fps_cfg max77663_fps_cfgs[] = {
 		.flags = _flags,					\
 	}
 
-MAX77663_PDATA_INIT(sd0,  600000, 3387500, NULL, 1, 0, 0,
-		    0, 0, -1, FPS_SRC_NONE, -1, -1, EN2_CTRL_SD0 | SD_FSRADE_DISABLE);
+MAX77663_PDATA_INIT(SD0, sd0,  600000, 3387500, NULL, 1, 0, 0,
+		    FPS_SRC_NONE, -1, -1, EN2_CTRL_SD0);
 
-MAX77663_PDATA_INIT(sd1,  800000, 1587500, NULL, 1, 0, 0,
-		    1, 1, -1, FPS_SRC_1, -1, -1, SD_FSRADE_DISABLE);
+MAX77663_PDATA_INIT(SD1, sd1,  800000, 1587500, NULL, 1, 1, 0,
+		    FPS_SRC_1, FPS_POWER_PERIOD_1, FPS_POWER_PERIOD_6, 0);
 
-MAX77663_PDATA_INIT(sd2,  1800000, 1800000, NULL, 1, 0, 0,
-		    1, 1, -1, FPS_SRC_NONE, -1, -1, 0);
+MAX77663_PDATA_INIT(SD2, sd2,  1800000, 1800000, NULL, 1, 1, 0,
+		    FPS_SRC_0, -1, -1, 0);
 
-MAX77663_PDATA_INIT(sd3,  600000, 3387500, NULL, 1, 0, 0,
-		    1, 1, -1, FPS_SRC_NONE, -1, -1, 0);
+MAX77663_PDATA_INIT(SD3, sd3,  600000, 3387500, NULL, 1, 1, 0,
+		    FPS_SRC_0, -1, -1, 0);
 
-MAX77663_PDATA_INIT(ldo0, 800000, 2350000, max77663_rails(sd3), 1, 0, 0,
-		    1, 1, -1, FPS_SRC_1, -1, -1, 0);
+MAX77663_PDATA_INIT(LDO0, ldo0, 800000, 2350000, max77663_rails(sd3), 1, 1, 0,
+		    FPS_SRC_1, -1, -1, 0);
 
-MAX77663_PDATA_INIT(ldo1, 800000, 2350000, max77663_rails(sd3), 0, 0, 0,
-		    0, 0, -1, FPS_SRC_NONE, -1, -1, 0);
+MAX77663_PDATA_INIT(LDO1, ldo1, 800000, 2350000, max77663_rails(sd3), 0, 0, 0,
+		    FPS_SRC_NONE, -1, -1, 0);
 
-MAX77663_PDATA_INIT(ldo2, 800000, 3950000, NULL, 1, 0, 0,
-		    1, 1, -1, FPS_SRC_1, -1, -1, 0);
+MAX77663_PDATA_INIT(LDO2, ldo2, 800000, 3950000, NULL, 1, 1, 0,
+		    FPS_SRC_1, -1, -1, 0);
 
-MAX77663_PDATA_INIT(ldo3, 800000, 3950000, NULL, 1, 0, 0,
-		    1, 1, -1, FPS_SRC_NONE, -1, -1, 0);
+MAX77663_PDATA_INIT(LDO3, ldo3, 800000, 3950000, NULL, 1, 1, 0,
+		    FPS_SRC_1, -1, -1, 0);
 
-MAX77663_PDATA_INIT(ldo4, 800000, 1587500, NULL, 0, 0, 0,
-		    1, 1, 1000000, FPS_SRC_0, -1, -1, LDO4_EN_TRACKING);
+MAX77663_PDATA_INIT(LDO4, ldo4, 1000000, 1000000, NULL, 0, 1, 0,
+		    FPS_SRC_0, -1, -1, LDO4_EN_TRACKING);
 
-MAX77663_PDATA_INIT(ldo5, 800000, 2800000, NULL, 0, 0, 0,
-		    1, 1, -1, FPS_SRC_NONE, -1, -1, 0);
+MAX77663_PDATA_INIT(LDO5, ldo5, 800000, 2800000, NULL, 0, 1, 0,
+		    FPS_SRC_NONE, -1, -1, 0);
 
-MAX77663_PDATA_INIT(ldo6, 800000, 3950000, NULL, 0, 0, 0,
-		    0, 0, -1, FPS_SRC_NONE, -1, -1, 0);
+MAX77663_PDATA_INIT(LDO6, ldo6, 800000, 3950000, NULL, 0, 0, 0,
+		    FPS_SRC_NONE, -1, -1, 0);
 
-MAX77663_PDATA_INIT(ldo7, 800000, 3950000, max77663_rails(sd3), 0, 0, 0,
-		    0, 0, -1, FPS_SRC_NONE, -1, -1, 0);
+MAX77663_PDATA_INIT(LDO7, ldo7, 800000, 3950000, max77663_rails(sd3), 0, 0, 0,
+		    FPS_SRC_NONE, -1, -1, 0);
 
-MAX77663_PDATA_INIT(ldo8, 800000, 3950000, max77663_rails(sd3), 0, 0, 0,
-		    1, 1, -1, FPS_SRC_1, -1, -1, 0);
+MAX77663_PDATA_INIT(LDO8, ldo8, 800000, 3950000, max77663_rails(sd3), 0, 1, 0,
+		    FPS_SRC_1, -1, -1, 0);
 
-#define MAX77663_REG(_id, _data)					\
-	{								\
-		.name = "max77663-regulator",				\
-		.id = MAX77663_REGULATOR_ID_##_id,			\
-		.platform_data = &max77663_regulator_pdata_##_data,	\
-		.pdata_size = sizeof(max77663_regulator_pdata_##_data),	\
-	}
+#define MAX77663_REG(_id, _data) &max77663_regulator_pdata_##_data
 
-#define MAX77663_RTC()							\
-	{								\
-		.name = "max77663-rtc",					\
-		.id = 0,						\
-	}
-
-static struct mfd_cell max77663_subdevs[] = {
+static struct max77663_regulator_platform_data  *max77663_reg_pdata[] = {
 	MAX77663_REG(SD0, sd0),
 	MAX77663_REG(SD1, sd1),
 	MAX77663_REG(SD2, sd2),
@@ -246,7 +236,6 @@ static struct mfd_cell max77663_subdevs[] = {
 	MAX77663_REG(LDO6, ldo6),
 	MAX77663_REG(LDO7, ldo7),
 	MAX77663_REG(LDO8, ldo8),
-	MAX77663_RTC(),
 };
 
 static struct max77663_gpio_config max77663_gpio_cfgs[] = {
@@ -274,9 +263,9 @@ static struct max77663_gpio_config max77663_gpio_cfgs[] = {
 	{
 		.gpio = MAX77663_GPIO3,
 		.dir = GPIO_DIR_OUT,
-		.dout = GPIO_DOUT_HIGH,
+		.dout = GPIO_DOUT_LOW,
 		.out_drv = GPIO_OUT_DRV_OPEN_DRAIN,
-		.alternate = GPIO_ALT_DISABLE,
+		.alternate = GPIO_ALT_ENABLE,
 	},
 	{
 		.gpio = MAX77663_GPIO4,
@@ -313,8 +302,8 @@ static struct max77663_platform_data max7763_pdata = {
 	.num_gpio_cfgs	= ARRAY_SIZE(max77663_gpio_cfgs),
 	.gpio_cfgs	= max77663_gpio_cfgs,
 
-	.num_subdevs	= ARRAY_SIZE(max77663_subdevs),
-	.sub_devices	= max77663_subdevs,
+	.regulator_pdata = max77663_reg_pdata,
+	.num_regulator_pdata = ARRAY_SIZE(max77663_reg_pdata),
 
 	.rtc_i2c_addr	= 0x68,
 
@@ -458,7 +447,7 @@ FIXED_REG(3, en_1v8_cam_a00,	en_1v8_cam,		max77663_rails(sd2),
 FIXED_REG(4, en_vddio_vid_a00,	en_vddio_vid,		NULL,
 	0,	0,	TEGRA_GPIO_PB2,				true,	0,	5000);
 FIXED_REG(5, en_3v3_modem_a00,	en_3v3_modem,		NULL,
-	1,	1,	TEGRA_GPIO_PP0,				true,	0,	3300);
+	0,	1,	TEGRA_GPIO_PP0,				true,	0,	3300);
 FIXED_REG(6, en_vdd_pnl_a00,	en_vdd_pnl,		FIXED_SUPPLY(en_3v3_sys_a00),
 	0,	0,	TEGRA_GPIO_PW1,				true,	0,	3300);
 FIXED_REG(7, en_cam3_ldo_a00,	en_cam3_ldo,		FIXED_SUPPLY(en_3v3_sys_a00),
@@ -480,9 +469,9 @@ FIXED_REG(3, en_1v8_cam_a01,	en_1v8_cam,		max77663_rails(sd2),
 FIXED_REG(4, en_vddio_vid_a01,	en_vddio_vid,		NULL,
 	0,	0,	TEGRA_GPIO_PB2,				true,	0,	5000);
 FIXED_REG(5, en_3v3_modem_a01,	en_3v3_modem,		NULL,
-	1,	1,	TEGRA_GPIO_PP0,				true,	0,	3300);
+	0,	1,	TEGRA_GPIO_PP0,				true,	0,	3300);
 FIXED_REG(6, en_vdd_pnl_a01,	en_vdd_pnl,		FIXED_SUPPLY(en_3v3_sys_a01),
-	0,	0,	TEGRA_GPIO_PW1,				true,	0,	3300);
+	0,	1,	TEGRA_GPIO_PW1,				true,	0,	3300);
 FIXED_REG(7, en_cam3_ldo_a01,	en_cam3_ldo,		FIXED_SUPPLY(en_3v3_sys_a01),
 	0,	0,	TEGRA_GPIO_PR7,				true,	0,	3300);
 FIXED_REG(8, en_vdd_com_a01,	en_vdd_com,		FIXED_SUPPLY(en_3v3_sys_a01),
@@ -607,6 +596,15 @@ static struct tegra_suspend_platform_data grouper_suspend_data = {
 	.cpu_lp2_min_residency = 2000,
 	.board_suspend = grouper_board_suspend,
 	.board_resume = grouper_board_resume,
+#ifdef CONFIG_TEGRA_LP1_950
+	.lp1_lowvolt_support = true,
+	.i2c_base_addr = TEGRA_I2C5_BASE,
+	.pmuslave_addr = 0x78,
+	.core_reg_addr = 0x17,
+	.lp1_core_volt_low_cold = 0x0C,
+	.lp1_core_volt_low = 0x0C,
+	.lp1_core_volt_high = 0x20,
+#endif
 };
 
 int __init grouper_suspend_init(void)
