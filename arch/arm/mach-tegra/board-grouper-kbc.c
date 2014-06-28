@@ -25,11 +25,15 @@
 #include <linux/device.h>
 #include <linux/gpio.h>
 #include <linux/gpio_keys.h>
+#include <linux/mfd/max77663-core.h>
+#include <linux/gpio_scrollwheel.h>
 
 #include <mach/irqs.h>
 #include <mach/io.h>
 #include <mach/iomap.h>
 #include <mach/kbc.h>
+#include <mach/gpio-tegra.h>
+
 #include "board.h"
 #include "board-grouper.h"
 
