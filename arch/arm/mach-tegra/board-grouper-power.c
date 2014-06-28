@@ -667,8 +667,7 @@ void tegra_booting_info(void )
 		printk("tegra_booting_info-normal\n");
 	}
 }
-static void __iomem *watchdog_timer  = IO_ADDRESS(TEGRA_TMR10_BASE);
-static void __iomem *watchdog_source = IO_ADDRESS(TEGRA_WDT0_BASE);
+
 #define TIMER_PTV			0
 #define TIMER_EN			(1 << 31)
 #define TIMER_PERIODIC			(1 << 30)
