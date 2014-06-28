@@ -697,22 +697,6 @@ static struct tegra_usb_platform_data tegra_udc_pdata = {
 	},
 };
 
-static struct tegra_ehci_platform_data tegra_ehci_pdata[] = {
-	[0] = {
-			.phy_config = &utmi_phy_config[0],
-			.operating_mode = TEGRA_USB_OTG,
-			.power_down_on_bus_suspend = 1,
-			.hotplug = 1,
-			.default_enable = true,
-	},
-	[1] = {
-			.phy_config = &utmi_phy_config[1],
-			.operating_mode = TEGRA_USB_HOST,
-			.power_down_on_bus_suspend = 1,
-			.default_enable = false,
-	},
-};
-
 static struct tegra_usb_platform_data tegra_ehci1_utmi_pdata = {
 	.port_otg = true,
 	.has_hostpc = true,
@@ -848,18 +832,15 @@ static void grouper_audio_init(void)
 	}
 }
 
-extern tegra_booting_info(void );
 static void __init tegra_grouper_init(void)
 {
 	grouper_misc_init();
-	tegra_thermal_init(&thermal_data);
 	tegra_clk_init_from_table(grouper_clk_init_table);
 	tegra_enable_pinmux();
 	tegra_smmu_init();
 	tegra_soc_device_init("grouper");
 	grouper_pinmux_init();
 	grouper_misc_reset();
-	tegra_booting_info();
 	grouper_i2c_init();
 	grouper_spi_init();
 	grouper_usb_init();
@@ -876,10 +857,10 @@ static void __init tegra_grouper_init(void)
 	grouper_suspend_init();
 	grouper_touch_init();
 	grouper_kbc_init();
+	grouper_modem_init();
 	grouper_keys_init();
 	grouper_panel_init();
 	grouper_bt_st();
-	grouper_nfc_init();
 	grouper_sensors_init();
 	grouper_pins_state_init();
 	grouper_emc_init();
