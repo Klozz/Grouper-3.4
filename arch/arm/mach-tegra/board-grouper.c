@@ -847,6 +847,7 @@ static void grouper_audio_init(void)
 	}
 }
 
+extern tegra_booting_info(void );
 static void __init tegra_grouper_init(void)
 {
 	grouper_misc_init();
@@ -881,7 +882,7 @@ static void __init tegra_grouper_init(void)
 	grouper_sensors_init();
 	grouper_pins_state_init();
 	grouper_emc_init();
-	tegra_release_bootloader_fb();
+//	tegra_release_bootloader_fb();
 #ifdef CONFIG_TEGRA_WDT_RECOVERY
 	tegra_wdt_recovery_init();
 #endif
