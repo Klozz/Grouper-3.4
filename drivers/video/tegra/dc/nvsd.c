@@ -176,7 +176,7 @@ static bool nvsd_phase_in_adjustments(struct tegra_dc *dc,
 	val = SD_BLC_BRIGHTNESS(val);
 
 	if (settings->panel_min_brightness) {
-		pdev = settings->bl_device;
+		/* pdev = settings->bl_device; TODO: Why does this not work suddenly? */
 		bl = platform_get_drvdata(pdev);
 		commanded = (cur_sd_brightness * bl->props.brightness) / 255;
 		/* Need to reduce how aggressive we are */
