@@ -28,6 +28,7 @@
 #include <mach/irqs.h>
 #include <mach/iomap.h>
 #include <mach/sdhci.h>
+#include <mach/gpio-tegra.h>
 
 #include "gpio-names.h"
 #include "board.h"
@@ -55,8 +56,8 @@ static struct wifi_platform_data grouper_wifi_control = {
 static struct resource wifi_resource[] = {
 	[0] = {
 		.name	= "bcmdhd_wlan_irq",
-		.start	= TEGRA_GPIO_TO_IRQ(TEGRA_GPIO_PO4),
-		.end	= TEGRA_GPIO_TO_IRQ(TEGRA_GPIO_PO4),
+		/* .start	= gpio_to_irq(TEGRA_GPIO_PO4),	TODO Find a way to use these, errors are created at the moment 
+		.end	= gpio_to_irq(TEGRA_GPIO_PO4), */
 		.flags	= IORESOURCE_IRQ | IORESOURCE_IRQ_HIGHLEVEL | IORESOURCE_IRQ_SHAREABLE,
 	},
 };
@@ -258,10 +259,6 @@ static int __init grouper_wifi_init(void)
 	rc = gpio_request(GROUPER_WLAN_WOW, "bcmsdh_sdmmc");
 	if (rc)
 		pr_err("WLAN_WOW gpio request failed:%d\n", rc);
-
-	tegra_gpio_enable(GROUPER_WLAN_PWR);
-	tegra_gpio_enable(GROUPER_WLAN_RST);
-	tegra_gpio_enable(GROUPER_WLAN_WOW);
 
 	rc = gpio_direction_output(GROUPER_WLAN_PWR, 0);
 	if (rc)
