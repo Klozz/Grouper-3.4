@@ -19,6 +19,8 @@
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/platform_data/tegra_emc.h>
+#include <linux/gpio.h>
+#include <mach/gpio-tegra.h>
 
 #include "board.h"
 #include "board-grouper.h"
@@ -28,7 +30,7 @@
 
 #include <mach/board-grouper-misc.h>
 
-static const struct tegra_emc_table Nakasi_dvfs_Elpida_table_0430[] = {
+static const struct tegra30_emc_table Nakasi_dvfs_Elpida_table_0430[] = {
 	{
 		0x32,       /* Rev 3.2 */
 		25500,      /* SDRAM frequency */
@@ -751,7 +753,7 @@ static const struct tegra_emc_table Nakasi_dvfs_Elpida_table_0430[] = {
 	},
 };
 
-static const struct tegra_emc_table Nakasi_dvfs_Hynix_table_0430[] ={
+static const struct tegra30_emc_table Nakasi_dvfs_Hynix_table_0430[] ={
 	{
 		0x32,       /* Rev 3.2 */
 		25500,      /* SDRAM frequency */
@@ -1474,7 +1476,7 @@ static const struct tegra_emc_table Nakasi_dvfs_Hynix_table_0430[] ={
 	},
 };
 
-static const struct tegra_emc_table ME370TG_dvfs_table_Elpida_0831[] = {
+static const struct tegra30_emc_table ME370TG_dvfs_table_Elpida_0831[] = {
 	{
 		0x32,       /* Rev 3.2 */
 		25500,      /* SDRAM frequency */
@@ -2196,7 +2198,8 @@ static const struct tegra_emc_table ME370TG_dvfs_table_Elpida_0831[] = {
 		0x00000000, /* EMC_CFG.DYN_SELF_REF */
 	},
 };
-static const struct tegra_emc_table Nakasi_dvfs_Hynix_table_0430[] ={
+
+static const struct tegra30_emc_table ME370TG_dvfs_table_Hynix_0831[] = {
 	{
 		0x32,       /* Rev 3.2 */
 		25500,      /* SDRAM frequency */
@@ -2731,10 +2734,10 @@ static const struct tegra_emc_table Nakasi_dvfs_Hynix_table_0430[] ={
 			0x00014000, /* EMC_DLL_XFORM_DQS5 */
 			0x00014000, /* EMC_DLL_XFORM_DQS6 */
 			0x00014000, /* EMC_DLL_XFORM_DQS7 */
-			0x00018000, /* EMC_DLL_XFORM_QUSE0 */
-			0x00018000, /* EMC_DLL_XFORM_QUSE1 */
-			0x00018000, /* EMC_DLL_XFORM_QUSE2 */
-			0x00018000, /* EMC_DLL_XFORM_QUSE3 */
+			0x00000000, /* EMC_DLL_XFORM_QUSE0 */
+			0x00000000, /* EMC_DLL_XFORM_QUSE1 */
+			0x00000000, /* EMC_DLL_XFORM_QUSE2 */
+			0x00000000, /* EMC_DLL_XFORM_QUSE3 */
 			0x00000000, /* EMC_DLL_XFORM_QUSE4 */
 			0x00000000, /* EMC_DLL_XFORM_QUSE5 */
 			0x00000000, /* EMC_DLL_XFORM_QUSE6 */
@@ -2752,7 +2755,7 @@ static const struct tegra_emc_table Nakasi_dvfs_Hynix_table_0430[] ={
 			0x00048000, /* EMC_DLL_XFORM_DQ2 */
 			0x00048000, /* EMC_DLL_XFORM_DQ3 */
 			0x000002a0, /* EMC_XM2CMDPADCTRL */
-			0x0600013d, /* EMC_XM2DQSPADCTRL2 */
+			0x0800013d, /* EMC_XM2DQSPADCTRL2 */
 			0x00000000, /* EMC_XM2DQPADCTRL2 */
 			0x77fff884, /* EMC_XM2CLKPADCTRL */
 			0x01f1f508, /* EMC_XM2COMPPADCTRL */
@@ -2786,7 +2789,7 @@ static const struct tegra_emc_table Nakasi_dvfs_Hynix_table_0430[] ={
 			0x000b0608, /* MC_EMEM_ARB_DA_COVERS */
 			0x70850f09, /* MC_EMEM_ARB_MISC0 */
 			0x001f0000, /* MC_EMEM_ARB_RING1_THROTTLE */
-			0xf8000000, /* EMC_FBIO_SPARE */
+			0xe8000000, /* EMC_FBIO_SPARE */
 			0xff00ff89, /* EMC_CFG_RSV */
 		},
 		0x00000040, /* EMC_ZCAL_WAIT_CNT after clock change */
@@ -2843,18 +2846,18 @@ static const struct tegra_emc_table Nakasi_dvfs_Hynix_table_0430[] ={
 			0x00005088, /* EMC_FBIO_CFG5 */
 			0xf00b0191, /* EMC_CFG_DIG_DLL */
 			0x00008000, /* EMC_CFG_DIG_DLL_PERIOD */
-			0x0000000a, /* EMC_DLL_XFORM_DQS0 */
-			0x0000000a, /* EMC_DLL_XFORM_DQS1 */
-			0x0000000a, /* EMC_DLL_XFORM_DQS2 */
-			0x0000000a, /* EMC_DLL_XFORM_DQS3 */
+			0x00000008, /* EMC_DLL_XFORM_DQS0 */
+			0x00000008, /* EMC_DLL_XFORM_DQS1 */
+			0x00000008, /* EMC_DLL_XFORM_DQS2 */
+			0x00000008, /* EMC_DLL_XFORM_DQS3 */
 			0x0000000a, /* EMC_DLL_XFORM_DQS4 */
 			0x0000000a, /* EMC_DLL_XFORM_DQS5 */
 			0x0000000a, /* EMC_DLL_XFORM_DQS6 */
 			0x0000000a, /* EMC_DLL_XFORM_DQS7 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE0 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE1 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE2 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE3 */
+			0x00018000, /* EMC_DLL_XFORM_QUSE0 */
+			0x00018000, /* EMC_DLL_XFORM_QUSE1 */
+			0x00018000, /* EMC_DLL_XFORM_QUSE2 */
+			0x00018000, /* EMC_DLL_XFORM_QUSE3 */
 			0x00000000, /* EMC_DLL_XFORM_QUSE4 */
 			0x00000000, /* EMC_DLL_XFORM_QUSE5 */
 			0x00000000, /* EMC_DLL_XFORM_QUSE6 */
@@ -2867,19 +2870,19 @@ static const struct tegra_emc_table Nakasi_dvfs_Hynix_table_0430[] ={
 			0x00000000, /* EMC_DLI_TRIM_TXDQS5 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS6 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS7 */
-			0x0000000c, /* EMC_DLL_XFORM_DQ0 */
-			0x0000000c, /* EMC_DLL_XFORM_DQ1 */
-			0x0000000c, /* EMC_DLL_XFORM_DQ2 */
-			0x0000000c, /* EMC_DLL_XFORM_DQ3 */
+			0x0000000a, /* EMC_DLL_XFORM_DQ0 */
+			0x0000000a, /* EMC_DLL_XFORM_DQ1 */
+			0x0000000a, /* EMC_DLL_XFORM_DQ2 */
+			0x0000000a, /* EMC_DLL_XFORM_DQ3 */
 			0x000002a0, /* EMC_XM2CMDPADCTRL */
-			0x0400013d, /* EMC_XM2DQSPADCTRL2 */
+			0x0800013d, /* EMC_XM2DQSPADCTRL2 */
 			0x22220000, /* EMC_XM2DQPADCTRL2 */
 			0x77fff884, /* EMC_XM2CLKPADCTRL */
 			0x01f1f501, /* EMC_XM2COMPPADCTRL */
 			0x07077404, /* EMC_XM2VTTGENPADCTRL */
 			0x54000000, /* EMC_XM2VTTGENPADCTRL2 */
 			0x080001e8, /* EMC_XM2QUSEPADCTRL */
-			0x0a000021, /* EMC_XM2DQSPADCTRL3 */
+			0x0c000021, /* EMC_XM2DQSPADCTRL3 */
 			0x00000802, /* EMC_CTT_TERM_CTRL */
 			0x00020000, /* EMC_ZCAL_INTERVAL */
 			0x00000100, /* EMC_ZCAL_WAIT_CNT */
@@ -2918,15 +2921,16 @@ static const struct tegra_emc_table Nakasi_dvfs_Hynix_table_0430[] ={
 		0x00000000, /* EMC_CFG.DYN_SELF_REF */
 	},
 };
+
 #include "gpio-names.h"
 int grouper_emc_init(void)
 {
-	int ret=0;
+	int ret = 0;
 	int mem_bootstrap_ad4=0,mem_bootstrap_ad5=0;
 	#define MEMORY_BOOSTRAP_PIN_AD4 TEGRA_GPIO_PG4
 	#define MEMORY_BOOSTRAP_PIN_AD5 TEGRA_GPIO_PG5
-	tegra_gpio_enable( MEMORY_BOOSTRAP_PIN_AD4);
-       ret = gpio_request( MEMORY_BOOSTRAP_PIN_AD4, "memory_bootstrap_ad4");
+	
+	ret = gpio_request( MEMORY_BOOSTRAP_PIN_AD4, "memory_bootstrap_ad4");
 	if (ret < 0) {
 		printk("grouper_emc_init: request MEMORY_BOOSTRAP_PIN_AD4 failed\n");
 		WARN_ON(1);
@@ -2939,8 +2943,7 @@ int grouper_emc_init(void)
 		goto err_handle;
 	}
 	mem_bootstrap_ad4=gpio_get_value(MEMORY_BOOSTRAP_PIN_AD4);
-	tegra_gpio_enable( MEMORY_BOOSTRAP_PIN_AD5);
-       ret = gpio_request( MEMORY_BOOSTRAP_PIN_AD5, "memory_bootstrap_ad5");
+	ret = gpio_request( MEMORY_BOOSTRAP_PIN_AD5, "memory_bootstrap_ad5");
 	if (ret < 0) {
 		printk("grouper_emc_init: request MEMORY_BOOSTRAP_PIN_AD5 failed\n");
 		WARN_ON(1);
@@ -2955,21 +2958,17 @@ int grouper_emc_init(void)
 	mem_bootstrap_ad5=gpio_get_value(MEMORY_BOOSTRAP_PIN_AD5);
 	printk("grouper_emc_init:mem_bootstrap_ad4=%u mem_bootstrap_ad5=%u \n",mem_bootstrap_ad4,mem_bootstrap_ad5);
 	if(!mem_bootstrap_ad4 && !mem_bootstrap_ad5){
-		tegra_init_emc(Nakasi_dvfs_Elpida_table_0430,
-			ARRAY_SIZE(Nakasi_dvfs_Elpida_table_0430));
+		tegra30_init_emc();
 		printk("grouper_emc_init:Nakasi_dvfs_Elpida_table_0430\n");
 	}else{
-		tegra_init_emc(Nakasi_dvfs_Hynix_table_0430,
-			ARRAY_SIZE(Nakasi_dvfs_Hynix_table_0430));
+		tegra30_init_emc();
 		printk("grouper_emc_init:Nakasi_dvfs_Hynix_table_0430\n");
 	}
 	return 0;
 err_handle:
-	if(tegra_init_emc(Nakasi_dvfs_Elpida_table_0430,
-			ARRAY_SIZE(Nakasi_dvfs_Elpida_table_0430))){
+	if(tegra30_init_emc()) {
 		printk("[unknow bootstrap pin] use Nakasi_dvfs_Elpida_table_0430\n");
-	}else if (tegra_init_emc(Nakasi_dvfs_Hynix_table_0430,
-			ARRAY_SIZE(Nakasi_dvfs_Hynix_table_0430))){
+	}else if (tegra30_init_emc()) {
 		printk("[unknow bootstrap pin] use Nakasi_dvfs_Hynix_table_0430 \n");
 	}else
 		printk("grouper_emc_init:no validate EMC tabe, disable EMC DVFS\n");
